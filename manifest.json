@@ -1,0 +1,16 @@
+{
+  "name": "Familia GFB & Sinergia Workspace",
+  "short_name": "Familia GFB",
+  "description": "Sistema integral de horarios, enfoque, gestión de proyectos Sinergia y finanzas familiares.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#080915",
+  "theme_color": "#7c6cff",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
