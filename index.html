@@ -915,18 +915,100 @@
     }
     @media (max-width: 768px) {
       #app-root { max-width: 100%; padding-bottom: 24px; }
-      .top-global-header { display: flex; justify-content: space-between; padding: 12px 14px; gap: 10px; }
+      .top-global-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; gap: 8px; }
+      .top-brand { font-size: 13px; gap: 6px; }
+      .top-badge { display: none; }
       .top-header-center { display: none; }
-      .portal-title { font-size: 26px; }
-      .hs-panel { padding: 12px 12px 0; }
-      .hs-card { padding: 14px; margin-bottom: 14px; }
+      .portal-title { font-size: 22px; }
+      .portal-sub { font-size: 12px; }
+      .hs-panel { padding: 10px 10px 0; }
+      .hs-card { padding: 12px; margin-bottom: 12px; }
+      .hs-card-header { gap: 6px; }
+
+      /* Member Sub-Header Mobile Clean */
+      .member-sub-header { padding: 10px 12px; gap: 10px; }
+      .member-info-row { flex-direction: column; align-items: stretch; gap: 8px; width: 100%; }
+      .member-sub-tabs {
+        gap: 6px;
+        padding-bottom: 4px;
+        width: 100%;
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .member-sub-btn {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 6px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .member-sub-btn.active {
+        background: var(--accent-soft);
+        border-color: var(--user-color, var(--accent));
+        color: var(--user-color, var(--accent));
+      }
+
+      /* Activity banner */
+      .hs-banner {
+        font-size: 12px;
+        padding: 9px 12px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        line-height: 1.4;
+      }
+
+      /* Date Nav Toolbar */
+      .date-nav-toolbar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+      }
+      .date-nav-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+      }
+      .hs-view-switch {
+        width: 100%;
+        display: flex;
+      }
+      .hs-view-switch-btn {
+        flex: 1;
+        text-align: center;
+        padding: 7px 10px;
+      }
+      #print-schedule-btn { display: none; }
+
+      /* Day View Tabs Mobile */
+      .hs-dayview-tabs {
+        display: flex;
+        gap: 4px;
+        padding-bottom: 6px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .hs-dayview-tab {
+        flex: 1;
+        min-width: 44px;
+        padding: 6px 2px;
+        border-radius: 8px;
+        font-size: 10px;
+      }
+
+      /* Hub Grid Mobile */
+      .hub-grid { grid-template-columns: 1fr; gap: 12px; }
+      .gfb-members-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
     }
     @media (max-width: 480px) {
-      .top-global-header { padding: 10px 10px; }
-      .hs-panel { padding: 10px 8px 0; }
-      .hs-card { padding: 12px; }
-      .hs-card-header { gap: 6px; }
-      .top-badge { font-size: 9.5px; padding: 4px 10px; }
+      .top-global-header { padding: 8px 10px; }
+      .hs-panel { padding: 8px 6px 0; }
+      .hs-card { padding: 10px; }
+      .gfb-members-grid { grid-template-columns: 1fr; }
     }
 
     /* ============ RESPONSIVE DAY VIEW ============ */
@@ -1402,12 +1484,20 @@
     }
   };
 
+  function getTodayDayKey() {
+    const dayNum = new Date().getDay();
+    const map = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
+    return map[dayNum] || 'LUNES';
+  }
+
+  const isMobileInitial = typeof window !== 'undefined' && window.innerWidth <= 768;
+
   let view = {
     selectedKey: null,
-    editorDay: 'LUNES',
+    editorDay: getTodayDayKey(),
     showNewSchedule: false,
-    scheduleMode: 'week',
-    activeDay: 'LUNES',
+    scheduleMode: isMobileInitial ? 'day' : 'week',
+    activeDay: getTodayDayKey(),
     showPaso2Catalog: false,
     paso2CatFilter: 'todos',
     paso2Search: ''
@@ -2858,18 +2948,18 @@
 
     // Week Nav & View Switch
     const label = fmtShort(dates[0]) + ' – ' + fmtFull(dates[6]);
-    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">';
-    h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
-    h += '<button class="hs-btn sm" id="week-prev">◀</button>';
-    h += '<span style="font-family:var(--mono);font-size:13px;font-weight:700;">'+esc(label)+'</span>';
-    h += '<button class="hs-btn sm" id="week-next">▶</button>';
-    h += '<button class="hs-btn sm primary" id="week-today">Esta Semana</button>';
+    h += '<div class="date-nav-toolbar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">';
+    h += '<div class="date-nav-controls" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+    h += '<button class="hs-btn sm" id="week-prev" style="padding:5px 9px;">◀</button>';
+    h += '<span style="font-family:var(--mono);font-size:12.5px;font-weight:700;">'+esc(label)+'</span>';
+    h += '<button class="hs-btn sm" id="week-next" style="padding:5px 9px;">▶</button>';
+    h += '<button class="hs-btn sm primary" id="week-today" style="padding:5px 10px;font-size:11px;">Esta Semana</button>';
     h += '<button class="hs-btn sm" id="print-schedule-btn" style="background:var(--accent-soft);color:var(--user-color, var(--accent));">🖨️ Imprimir Horario A4</button>';
     h += '</div>';
 
     h += '<div class="hs-view-switch">';
-    h += '<button class="hs-view-switch-btn'+(view.scheduleMode==='week'?' active':'')+'" id="switch-view-week">📅 Vista Semanal</button>';
     h += '<button class="hs-view-switch-btn'+(view.scheduleMode==='day'?' active':'')+'" id="switch-view-day">📱 Vista Diaria</button>';
+    h += '<button class="hs-view-switch-btn'+(view.scheduleMode==='week'?' active':'')+'" id="switch-view-week">📅 Vista Semanal</button>';
     h += '</div>';
     h += '</div>';
 
@@ -5134,6 +5224,10 @@
       state.lastActiveMemberId = state.activeMemberId;
       state.activeGlobalTab = 'portal';
       state.memberSubTab = 'horario';
+      if (window.innerWidth <= 768) {
+        view.scheduleMode = 'day';
+        view.activeDay = getTodayDayKey();
+      }
       saveState(); render();
       showToast('¡Horario de ' + state.members[state.activeMemberId].name + ' cargado! 👋');
       return;
