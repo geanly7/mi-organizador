@@ -1,5 +1,5 @@
 // Service Worker profesional con auto-actualización y soporte offline para Familia GFB & Sinergia
-const CACHE_NAME = 'familia-gfb-v14.8';
+const CACHE_NAME = 'familia-gfb-v14.9';
 const ASSETS = [
   './',
   './index.html',
@@ -51,5 +51,23 @@ self.addEventListener('fetch', (e) => {
           if (e.request.mode === 'navigate') return caches.match('./index.html');
         });
       })
+  );
+});
+
+// Manejo de clic en notificaciones nativas de la barra superior
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (let i = 0; i < clientList.length; i++) {
+        const client = clientList[i];
+        if (client.url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('./');
+      }
+    })
   );
 });

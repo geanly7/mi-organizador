@@ -3071,10 +3071,21 @@
         const perm = await Notification.requestPermission();
         if (perm === 'granted') {
           playAlarmChime();
-          new Notification('🔔 ¡Notificaciones Activadas! — Familia GFB', {
-            body: `Las alarmas de ${mem.name} te avisarán 10 minutos antes de cada actividad.`,
-            icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
-          });
+          if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            const reg = await navigator.serviceWorker.ready;
+            reg.showNotification('👨‍👩‍👧‍👦 FAMILIA GFB WORKSPACE', {
+              body: `🔔 ¡Notificaciones activadas para ${mem.name}! Te avisaremos de tus eventos y entregas del calendario.`,
+              icon: './sinergia-logo.jpg',
+              badge: './sinergia-logo.jpg',
+              vibrate: [200, 100, 200],
+              tag: 'gfb-welcome-notif'
+            });
+          } else {
+            new Notification('👨‍👩‍👧‍👦 FAMILIA GFB WORKSPACE', {
+              body: `🔔 ¡Notificaciones activadas para ${mem.name}! Te avisaremos de tus eventos y entregas del calendario.`,
+              icon: './sinergia-logo.jpg'
+            });
+          }
           showToast('🎉 ¡Notificaciones activadas con éxito!');
         } else {
           showToast('Permiso de notificaciones no concedido', 'warn');
