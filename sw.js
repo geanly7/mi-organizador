@@ -1,9 +1,11 @@
 // Service Worker profesional con auto-actualización y soporte offline para Familia GFB & Sinergia
-const CACHE_NAME = 'familia-gfb-v8.8';
+const CACHE_NAME = 'familia-gfb-v14.8';
 const ASSETS = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './sinergia-logo.jpg',
+  './fondo-textura.jpg'
 ];
 
 // Instalación inmediata
