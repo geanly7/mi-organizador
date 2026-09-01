@@ -1171,26 +1171,27 @@
       font-weight: 700;
     }
     .hs-dayview-card {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--cat) 12%, var(--bg-card));
+      border: 1px solid color-mix(in srgb, var(--cat) 30%, var(--border));
       border-left: 5px solid var(--cat);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      margin-bottom: 10px;
+      border-radius: 7px;
+      padding: 6px 10px;
+      margin-bottom: 4px;
+      min-height: 38px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      transition: background 0.2s, transform 0.15s;
+      gap: 8px;
+      transition: background 0.15s, transform 0.15s;
       cursor: pointer;
     }
     .hs-dayview-card:hover {
-      background: var(--bg-surface-hover);
-      transform: translateX(3px);
+      background: color-mix(in srgb, var(--cat) 22%, var(--bg-card));
+      transform: translateX(2px);
     }
     .hs-dayview-card.done {
-      opacity: 0.45;
-      filter: grayscale(0.2);
+      opacity: 0.38;
+      filter: grayscale(0.4);
     }
     .hs-dayview-card.done .hs-dayview-title {
       text-decoration: line-through;
@@ -1198,28 +1199,36 @@
     .hs-dayview-card.now {
       outline: 2px solid var(--user-color, var(--accent));
       outline-offset: -1px;
+      box-shadow: 0 0 10px color-mix(in srgb, var(--cat) 40%, transparent);
     }
     .hs-dayview-time {
       font-family: var(--mono);
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 700;
-      color: var(--text-2);
-      min-width: 95px;
+      color: var(--cat);
+      min-width: 78px;
+      flex-shrink: 0;
     }
     .hs-dayview-title {
-      font-size: 13.5px;
-      font-weight: 600;
+      font-size: 12px;
+      font-weight: 700;
       color: var(--text-1);
       flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .hs-dayview-cat {
-      font-size: 10.5px;
+      font-size: 9.5px;
       font-family: var(--mono);
-      padding: 2px 8px;
+      padding: 2px 7px;
       border-radius: 10px;
-      background: color-mix(in srgb, var(--cat) 20%, transparent);
+      background: color-mix(in srgb, var(--cat) 25%, var(--bg-card));
       color: var(--cat);
-      font-weight: 600;
+      border: 1px solid var(--cat);
+      font-weight: 800;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     /* ============ SINERGIA UNIVERSAL MODALS ============ */
@@ -1498,37 +1507,37 @@
 
   const DEFAULT_CATEGORIES = {
     geanly: {
-      RUTINA:{c:'#4B5563',n:'Rutina'}, TRASLADO:{c:'#64748B',n:'Traslado'},
-      MECSUELOS:{c:'#4A7C59',n:'Mecánica de Suelos'}, TECCONCRETO:{c:'#4A6984',n:'Tecnología del Concreto'},
-      HIDRAULICA:{c:'#3D7888',n:'Hidráulica de Canales'}, MECMAT2:{c:'#5A7365',n:'Mecánica de Materiales II'},
-      PROCESOS:{c:'#8C7355',n:'Procesos Constructivos'}, DISEÑOVIAL:{c:'#8C6350',n:'Diseño Geométrico Vial'},
-      ESTUDIO:{c:'#526E8F',n:'Estudio / repaso'}, BIBLIOTECA:{c:'#5B5F80',n:'Biblioteca'},
-      SINERGIA:{c:'#DAAF37',n:'Sinergia (empresa)'}, PROYECTOS:{c:'#4E786B',n:'Proyectos personales'},
-      BREAK:{c:'#374151',n:'Pausa'}, REHAB:{c:'#7C5858',n:'Rehabilitación / hombro'},
-      LIBRE:{c:'#475569',n:'Tiempo libre'}, FAMILIA:{c:'#8C6D75',n:'Familia'}
+      RUTINA:{c:'#64748b',n:'Rutina'}, TRASLADO:{c:'#0284c7',n:'Traslado'},
+      MECSUELOS:{c:'#2563eb',n:'Mecánica de Suelos'}, TECCONCRETO:{c:'#059669',n:'Tecnología del Concreto'},
+      HIDRAULICA:{c:'#06b6d4',n:'Hidráulica de Canales'}, MECMAT2:{c:'#7c3aed',n:'Mecánica de Materiales II'},
+      PROCESOS:{c:'#ea580c',n:'Procesos Constructivos'}, DISEÑOVIAL:{c:'#e11d48',n:'Diseño Geométrico Vial'},
+      ESTUDIO:{c:'#d97706',n:'Estudio / Repaso'}, BIBLIOTECA:{c:'#9333ea',n:'Biblioteca'},
+      SINERGIA:{c:'#f59e0b',n:'Sinergia (Empresa)'}, PROYECTOS:{c:'#0d9488',n:'Proyectos Personales'},
+      BREAK:{c:'#475569',n:'Pausa'}, REHAB:{c:'#10b981',n:'Rehabilitación / Hombro'},
+      LIBRE:{c:'#38bdf8',n:'Tiempo Libre'}, FAMILIA:{c:'#ec4899',n:'Familia'}
     },
     willman: {
-      TRABAJO:{c:'#4B6584',n:'Supervisión & Obra'}, HOGAR:{c:'#61726B',n:'Gestiones del Hogar'},
-      FINANZAS:{c:'#7C6E4E',n:'Control Financiero'}, RUTINA:{c:'#4B5563',n:'Rutina y Aseo'},
-      TRASLADO:{c:'#64748B',n:'Traslados'}, FAMILIA:{c:'#8C6D75',n:'Tiempo en Familia'},
-      DESCANSO:{c:'#525B6C',n:'Descanso y Salud'}
+      TRABAJO:{c:'#2563eb',n:'Supervisión & Obra'}, HOGAR:{c:'#10b981',n:'Gestiones del Hogar'},
+      FINANZAS:{c:'#f59e0b',n:'Control Financiero'}, RUTINA:{c:'#64748b',n:'Rutina y Aseo'},
+      TRASLADO:{c:'#0284c7',n:'Traslados'}, FAMILIA:{c:'#ec4899',n:'Tiempo en Familia'},
+      DESCANSO:{c:'#8b5cf6',n:'Descanso y Salud'}
     },
     karen: {
-      ESTUDIO:{c:'#526E8F',n:'Estudios & Cursos'}, HOGAR:{c:'#61726B',n:'Hogar y Cocina'},
-      TRABAJO:{c:'#DAAF37',n:'Administración Sinergia'}, BIENESTAR:{c:'#7C5858',n:'Salud y Bienestar'},
-      FAMILIA:{c:'#8C6D75',n:'Tiempo en Familia'}, RUTINA:{c:'#4B5563',n:'Rutina Diaria'},
-      DESCANSO:{c:'#525B6C',n:'Descanso y Lectura'}
+      ESTUDIO:{c:'#2563eb',n:'Estudios & Cursos'}, HOGAR:{c:'#10b981',n:'Hogar y Cocina'},
+      TRABAJO:{c:'#f59e0b',n:'Administración Sinergia'}, BIENESTAR:{c:'#06b6d4',n:'Salud y Bienestar'},
+      FAMILIA:{c:'#ec4899',n:'Tiempo en Familia'}, RUTINA:{c:'#64748b',n:'Rutina Diaria'},
+      DESCANSO:{c:'#8b5cf6',n:'Descanso y Lectura'}
     },
     franco: {
-      ESTUDIO:{c:'#526E8F',n:'Estudio / Clases'}, REPASO:{c:'#4A6984',n:'Tareas y Repaso'},
-      DEPORTE:{c:'#487362',n:'Deporte & Gym'}, RUTINA:{c:'#4B5563',n:'Rutina y Aseo'},
-      LIBRE:{c:'#475569',n:'Proyectos & Hobbies'}, FAMILIA:{c:'#8C6D75',n:'Familia'}
+      ESTUDIO:{c:'#2563eb',n:'Estudio / Clases'}, REPASO:{c:'#7c3aed',n:'Tareas y Repaso'},
+      DEPORTE:{c:'#ef4444',n:'Deporte & Gym'}, RUTINA:{c:'#64748b',n:'Rutina y Aseo'},
+      LIBRE:{c:'#06b6d4',n:'Proyectos & Hobbies'}, FAMILIA:{c:'#ec4899',n:'Familia'}
     },
     benjamin: {
-      COLEGIO:{c:'#4A6984',n:'Colegio & Clases'}, TAREAS:{c:'#526E8F',n:'Tareas Escolares'},
-      LECTURA:{c:'#4E786B',n:'Lectura y Aprendizaje'}, JUEGOS:{c:'#8C7355',n:'Creatividad & Dibujo'},
-      DEPORTE:{c:'#487362',n:'Deporte y Parque'}, RUTINA:{c:'#4B5563',n:'Rutina y Dormir'},
-      FAMILIA:{c:'#8C6D75',n:'Familia'}
+      COLEGIO:{c:'#2563eb',n:'Colegio & Clases'}, TAREAS:{c:'#7c3aed',n:'Tareas Escolares'},
+      LECTURA:{c:'#06b6d4',n:'Lectura y Aprendizaje'}, JUEGOS:{c:'#f59e0b',n:'Creatividad & Dibujo'},
+      DEPORTE:{c:'#ef4444',n:'Deporte y Parque'}, RUTINA:{c:'#64748b',n:'Rutina y Dormir'},
+      FAMILIA:{c:'#ec4899',n:'Familia'}
     }
   };
 
@@ -2713,6 +2722,15 @@
         const mem = state.members[m.id];
         if (!mem.currentWeekStart) mem.currentWeekStart = getMondayOf(new Date());
         mem.color = m.color; // Adopt modern architectural palette
+        // Auto-upgrade category colors to vibrant palette
+        const defaultCats = DEFAULT_CATEGORIES[m.id] || DEFAULT_CATEGORIES.geanly;
+        if (!mem.categories) mem.categories = JSON.parse(JSON.stringify(defaultCats));
+        else {
+          Object.keys(defaultCats).forEach(k => {
+            if (!mem.categories[k]) mem.categories[k] = defaultCats[k];
+            else mem.categories[k].c = defaultCats[k].c; // Update to vibrant color
+          });
+        }
         if (!mem.driveVault || !mem.driveVault.length) {
           mem.driveVault = getDefaultMemberDriveVault(m.id);
         }
@@ -4289,14 +4307,14 @@
           const isNow = current && current.day === selDay && current.idx === i;
           const catInfo = cats[b[3]] || { c: '#7c6cff', n: b[3] };
           h += '<div class="hs-dayview-card'+(isDone?' done':'')+(isNow?' now':'')+'" style="--cat:'+catInfo.c+'" data-key="'+key+'">';
-          h += '<div style="display:flex;align-items:center;gap:12px;flex:1;">';
-          h += '<span style="font-size:16px;">'+(isDone?'✅':'⬜')+'</span>';
-          h += '<div><span class="hs-dayview-time">'+b[0]+' – '+b[1]+'</span>';
-          h += '<div class="hs-dayview-title">'+esc(b[2])+'</div></div>';
+          h += '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">';
+          h += '<span style="font-size:13px;flex-shrink:0;cursor:pointer;">'+(isDone?'✅':'⬜')+'</span>';
+          h += '<span class="hs-dayview-time">'+b[0]+'–'+b[1]+'</span>';
+          h += '<span class="hs-dayview-title" title="'+esc(b[2])+'">'+esc(b[2])+'</span>';
           h += '</div>';
-          h += '<div style="display:flex;align-items:center;gap:6px;">';
+          h += '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">';
           h += '<span class="hs-dayview-cat">'+esc(catInfo.n)+'</span>';
-          h += '<button class="quick-edit-block" data-d="'+selDay+'" data-i="'+i+'" style="border:none;background:var(--bg-surface);color:var(--text-2);border-radius:4px;padding:3px 7px;cursor:pointer;font-size:11.5px;" title="Editar actividad">✏️</button>';
+          h += '<button class="quick-edit-block" data-d="'+selDay+'" data-i="'+i+'" style="border:none;background:var(--bg-surface);color:var(--text-2);border-radius:4px;padding:2px 5px;cursor:pointer;font-size:10.5px;" title="Editar actividad">✏️</button>';
           h += '</div>';
           h += '</div>';
         });
