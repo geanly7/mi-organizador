@@ -1070,14 +1070,33 @@
       .quick-nav-dropdown {
         position: fixed !important;
         top: 56px !important;
-        left: 12px !important;
-        right: 12px !important;
-        width: auto !important;
-        max-width: calc(100vw - 24px) !important;
+        left: 10px !important;
+        right: 10px !important;
+        width: calc(100vw - 20px) !important;
+        max-width: calc(100vw - 20px) !important;
+        box-sizing: border-box !important;
         padding: 16px 14px !important;
         border-radius: 14px !important;
-        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85) !important;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9) !important;
+        background: rgba(20, 22, 30, 0.98) !important;
+        border: 1.5px solid var(--border-strong) !important;
         z-index: 100000 !important;
+      }
+      .quick-nav-cards {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .quick-nav-square {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
       }
       .quick-nav-cards {
         display: grid !important;
@@ -5903,7 +5922,7 @@
       h += '<table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">';
       h += '<thead style="background:var(--bg-card);border-bottom:2px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--text-2);text-transform:uppercase;"><tr>';
       h += '<th style="padding:10px 12px;">Concepto / Origen</th>';
-      h += '<th style="padding:10px 12px;">Responsable</th>';
+      h += '<th style="padding:10px 12px;white-space:nowrap;">Responsable</th>';
       h += '<th style="padding:10px 12px;">Frecuencia</th>';
       h += '<th style="padding:10px 12px;">Fecha Estimada</th>';
       h += '<th style="padding:10px 12px;text-align:right;">Monto</th>';
@@ -5916,7 +5935,7 @@
         ingresosList.forEach(item => {
           h += '<tr style="border-bottom:1px solid var(--border);">';
           h += '<td style="padding:10px 12px;"><strong style="color:var(--text-1);">' + esc(item.desc) + '</strong>' + (item.notes ? '<div style="font-size:10.5px;color:var(--text-3);">' + esc(item.notes) + '</div>' : '') + '</td>';
-          h += '<td style="padding:10px 12px;"><span style="background:var(--bg-surface);padding:3px 8px;border-radius:4px;border:1px solid var(--border);font-weight:600;">👤 ' + esc(item.payer || 'Familia') + '</span></td>';
+          h += '<td style="padding:10px 12px;"><span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap;background:var(--bg-surface);padding:3px 9px;border-radius:6px;border:1px solid var(--border);font-size:11.5px;font-weight:700;color:var(--text-1);">👤 ' + esc(item.payer || 'Familia') + '</span></td>';
           h += '<td style="padding:10px 12px;font-family:var(--mono);color:var(--text-2);">' + esc(item.freq || 'Mensual') + '</td>';
           h += '<td style="padding:10px 12px;font-family:var(--mono);color:var(--text-3);">' + esc(item.date || '—') + '</td>';
           h += '<td style="padding:10px 12px;text-align:right;font-weight:800;font-family:var(--mono);color:#4E8772;">S/. ' + cleanNum(item.amount, 0).toFixed(2) + '</td>';
@@ -5954,7 +5973,7 @@
       h += '<th style="padding:10px 12px;">Estado</th>';
       h += '<th style="padding:10px 12px;">Concepto</th>';
       h += '<th style="padding:10px 12px;">Categoría</th>';
-      h += '<th style="padding:10px 12px;">Responsable</th>';
+      h += '<th style="padding:10px 12px;white-space:nowrap;">Responsable</th>';
       h += '<th style="padding:10px 12px;">Vencimiento</th>';
       h += '<th style="padding:10px 12px;text-align:right;">Monto</th>';
       h += '<th style="padding:10px 12px;text-align:center;">Acciones</th>';
@@ -5972,7 +5991,7 @@
           h += '</td>';
           h += '<td style="padding:10px 12px;"><strong style="color:var(--text-1);">' + esc(g.desc) + '</strong>' + (g.notes ? '<div style="font-size:10.5px;color:var(--text-3);">' + esc(g.notes) + '</div>' : '') + '</td>';
           h += '<td style="padding:10px 12px;"><span style="font-size:10.5px;padding:2px 7px;border-radius:4px;background:' + badge.bg + ';color:' + badge.color + ';font-weight:700;">' + badge.label + '</span></td>';
-          h += '<td style="padding:10px 12px;"><span style="background:var(--bg-surface);padding:3px 8px;border-radius:4px;border:1px solid var(--border);font-weight:600;">👤 ' + esc(g.payer || 'Familia') + '</span></td>';
+          h += '<td style="padding:10px 12px;"><span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap;background:var(--bg-surface);padding:3px 9px;border-radius:6px;border:1px solid var(--border);font-size:11.5px;font-weight:700;color:var(--text-1);">👤 ' + esc(g.payer || 'Familia') + '</span></td>';
           h += '<td style="padding:10px 12px;font-family:var(--mono);color:var(--text-3);">' + esc(g.dueDate || '—') + '</td>';
           h += '<td style="padding:10px 12px;text-align:right;font-weight:800;font-family:var(--mono);color:#B76E79;">S/. ' + cleanNum(g.amount, 0).toFixed(2) + '</td>';
           h += '<td style="padding:10px 12px;text-align:center;">';
