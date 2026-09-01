@@ -1356,6 +1356,9 @@
   }
 
 </style>
+  <!-- Firebase Realtime Database SDK (Google Cloud Sync) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
   <div id="app-root" data-theme="dark"></div>
@@ -1494,6 +1497,51 @@
       try { localStorage.setItem(k, v); } catch(e) { console.warn('Storage set error:', e); }
     }
   };
+
+  
+  // ================================================================
+  // GOOGLE FIREBASE REALTIME CLOUD SYNC CONFIGURATION
+  // ================================================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyB2f2kJQj4zd46FryVbS95IJSSOUAf6nx4",
+    authDomain: "familia-gfb.firebaseapp.com",
+    databaseURL: "https://familia-gfb-default-rtdb.firebaseio.com",
+    projectId: "familia-gfb",
+    storageBucket: "familia-gfb.firebasestorage.app",
+    messagingSenderId: "589116642855",
+    appId: "1:589116642855:web:d169c5c65d06e660fca002"
+  };
+
+  let cloudSyncTimeout = null;
+  let isReceivingCloudData = false;
+  let cloudStatus = 'connecting'; // 'connected' | 'offline' | 'connecting'
+
+  function syncToFirebase() {
+    if (!window.firebase || !window.gfbFirebaseDb) return;
+    try {
+      const payload = {
+        members: state.members,
+        sinergia: state.sinergia,
+        sinergiaMaterials: state.sinergiaMaterials,
+        sinergiaSuppliers: state.sinergiaSuppliers,
+        finanzas: state.finanzas,
+        household: state.household,
+        academic: state.academic,
+        lastUpdated: Date.now()
+      };
+      window.gfbFirebaseDb.ref('gfb_cloud_sync').set(payload)
+        .then(() => {
+          cloudStatus = 'connected';
+        })
+        .catch(err => {
+          console.warn('Firebase set error:', err);
+          cloudStatus = 'offline';
+        });
+    } catch(e) {
+      console.warn('Firebase sync error:', e);
+      cloudStatus = 'offline';
+    }
+  }
 
   let state = {
     version: '5.0',
@@ -2656,6 +2704,47 @@
       pomo.mode = 'Enfoque';
     }
 
+    // Inicializar Firebase Realtime Database para sincronización en vivo
+    try {
+      if (window.firebase) {
+        if (!firebase.apps || !firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+        window.gfbFirebaseDb = db;
+        const syncRef = db.ref('gfb_cloud_sync');
+
+        // Escuchar cambios en vivo desde cualquier celular o PC
+        syncRef.on('value', (snapshot) => {
+          const cloudData = snapshot.val();
+          if (cloudData && typeof cloudData === 'object' && cloudData.lastUpdated) {
+            isReceivingCloudData = true;
+            if (cloudData.members) state.members = cloudData.members;
+            if (cloudData.sinergia) state.sinergia = cloudData.sinergia;
+            if (cloudData.sinergiaMaterials) state.sinergiaMaterials = cloudData.sinergiaMaterials;
+            if (cloudData.sinergiaSuppliers) state.sinergiaSuppliers = cloudData.sinergiaSuppliers;
+            if (cloudData.finanzas) state.finanzas = cloudData.finanzas;
+            if (cloudData.household) state.household = cloudData.household;
+            if (cloudData.academic) state.academic = cloudData.academic;
+            
+            store.set('familia-gfb-workspace-v5', JSON.stringify(state));
+            cloudStatus = 'connected';
+            isReceivingCloudData = false;
+            render();
+          } else {
+            // Primera vez: subir datos locales para poblar la nube
+            syncToFirebase();
+          }
+        }, (err) => {
+          console.warn('Firebase listen error:', err);
+          cloudStatus = 'offline';
+        });
+      }
+    } catch(e) {
+      console.warn('Firebase init error:', e);
+      cloudStatus = 'offline';
+    }
+
     applyTheme();
     try {
       render();
@@ -2672,6 +2761,11 @@
       store.set('familia-gfb-workspace-v5', JSON.stringify(state));
     } catch(e) {
       console.warn('Save error:', e);
+    }
+
+    if (!isReceivingCloudData) {
+      clearTimeout(cloudSyncTimeout);
+      cloudSyncTimeout = setTimeout(syncToFirebase, 350);
     }
   }
 
@@ -3131,7 +3225,7 @@
     h += '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:16px;flex-wrap:wrap;gap:12px;">';
     h += '<div>';
     h += '<div style="display:flex;align-items:center;gap:8px;">';
-    h += '<span style="font-size:11px;font-family:var(--mono);font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 10px;border-radius:12px;">PORTAL CENTRAL</span>';
+    h += '<span style="font-size:11px;font-family:var(--mono);font-weight:700;color:var(--accent);background:var(--accent-soft);padding:3px 10px;border-radius:12px;">PORTAL CENTRAL</span><span style="font-size:10.5px;font-family:var(--mono);font-weight:700;color:#10b981;background:rgba(16,185,129,0.14);border:1px solid rgba(16,185,129,0.3);padding:3px 9px;border-radius:12px;">🟢 Nube en Vivo</span>';
     h += '<h2 style="font-size:24px;font-weight:900;letter-spacing:-0.02em;color:var(--text-1);">👨‍👩‍👧‍👦 FAMILIA GFB WORKSPACE</h2>';
     h += '</div>';
     h += '<p style="font-size:13px;color:var(--text-2);margin-top:2px;">Selecciona el ecosistema al que deseas ingresar:</p>';
