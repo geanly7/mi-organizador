@@ -3475,6 +3475,16 @@
       h += '</div>';
       h += '<div style="font-size:11.5px;color:var(--text-2);margin-top:2px;">'+esc(mem.focusGoal || mem.defaultFocus)+'</div></div>';
       
+      // Selector Rápido de Familiares (Willman, Karen, Geanly, Franco, Benjamín)
+      h += '<div style="display:flex;align-items:center;gap:4px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;">';
+      FAMILY_MEMBERS.forEach(fm => {
+        const isCur = mem.id === fm.id;
+        h += '<button type="button" class="hs-btn sm member-quick-switch-btn' + (isCur ? ' primary' : '') + '" data-switch-mid="' + fm.id + '" style="padding:4px 8px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;border-radius:14px;' + (isCur ? 'background:' + fm.color + ';color:#fff;border-color:' + fm.color + ';' : 'background:var(--bg-surface);border:1px solid var(--border);') + '">';
+        h += '<span>' + fm.icon + '</span> <span>' + esc(fm.name) + '</span>';
+        h += '</button>';
+      });
+      h += '</div>';
+
       // Schedule Switcher
       h += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
       h += '<span style="font-size:11px;color:var(--text-3);font-family:var(--mono);">Horario:</span>';
@@ -7260,15 +7270,10 @@
         state.memberSubTab = 'horario';
         if (state.deviceOwner && state.deviceOwner !== 'all') {
           state.activeMemberId = state.deviceOwner;
-        } else if (state.deviceOwner === 'all') {
+        } else {
           if (!state.activeMemberId) {
             state.activeMemberId = state.lastActiveMemberId || 'geanly';
           }
-        } else {
-          showDeviceLinkModal(() => {
-            saveState(); render();
-          });
-          return;
         }
       }
       state.appFlow = 'workspace';
@@ -7426,6 +7431,16 @@
     }
 
     // Member Sub tabs
+    const memQuickSwitch = e.target.closest('[data-switch-mid]');
+    if (memQuickSwitch) {
+      state.activeMemberId = memQuickSwitch.dataset.switchMid;
+      state.lastActiveMemberId = state.activeMemberId;
+      state.memberSubTab = 'horario';
+      saveState(); render();
+      showToast('Cambiado a horario de ' + state.members[state.activeMemberId].name + ' 👋');
+      return;
+    }
+
     const msub = e.target.closest('[data-msub]');
     if (msub) {
       state.memberSubTab = msub.dataset.msub;
