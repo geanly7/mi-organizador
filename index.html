@@ -3685,10 +3685,12 @@
     h += '</div>';
 
     // -------------------------------------------------------------
-    // CUADRÍCULA MENSUAL (7 COLUMNAS)
+    // CUADRÍCULA MENSUAL AMPLIA DESLIZABLE (7 COLUMNAS CON SWIPE)
     // -------------------------------------------------------------
-    h += '<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-top:12px;">';
-    h += '<div style="display:grid;grid-template-columns:repeat(7, minmax(0, 1fr));background:var(--bg-card);border-bottom:2px solid var(--border);text-align:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text-2);padding:8px 0;">';
+    h += '<div style="font-size:11.5px;color:var(--text-3);margin-top:12px;margin-bottom:6px;display:flex;align-items:center;gap:6px;"><span>👉</span> <em>Desliza horizontalmente para navegar entre los días del mes:</em></div>';
+    h += '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);margin-bottom:14px;">';
+    h += '<div style="min-width:720px;background:var(--bg-elevated);">';
+    h += '<div style="display:grid;grid-template-columns:repeat(7, 1fr);background:var(--bg-card);border-bottom:2px solid var(--border);text-align:center;font-family:var(--mono);font-size:12px;font-weight:800;color:var(--text-2);padding:10px 0;">';
     ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'].forEach(dName => {
       h += '<div>' + dName + '</div>';
     });
@@ -3752,7 +3754,7 @@
       h += '<div style="background:var(--bg-base);min-height:96px;opacity:0.4;"></div>';
     }
 
-    h += '</div></div>';
+    h += '</div></div></div>';
     h += '</div>';
 
     // -------------------------------------------------------------
@@ -4173,10 +4175,10 @@
     h += '<div class="hs-card" style="margin-bottom:14px;padding:12px;background:var(--bg-elevated);border-left:4px solid var(--user-color, var(--accent));">';
     
     // Header row of toolbar
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">';
     h += '<div style="display:flex;align-items:center;gap:6px;">';
     h += '<span style="font-size:16px;">📁</span>';
-    h += '<strong style="font-size:13px;color:var(--text-1);letter-spacing:0.3px;">GRUPOS & CAPAS DE HORARIO:</strong>';
+    h += '<strong style="font-size:13px;color:var(--text-1);letter-spacing:0.3px;">GRUPOS & CAPAS:</strong>';
     if (anyDisabled) {
       h += '<span style="background:rgba(239,68,68,0.18);color:#ef4444;font-size:10px;font-family:var(--mono);padding:1px 7px;border-radius:10px;font-weight:700;border:1px solid rgba(239,68,68,0.3);">Filtro Activo</span>';
     }
@@ -4336,7 +4338,7 @@
         });
         h += '</tr>';
       }
-      h += '</tbody></table></div>';
+      h += '</tbody></table></div></div>';
       h += '<p class="hs-hint">💡 Clic en un bloque para marcarlo como completado · La línea roja marca la hora actual en vivo.</p>';
     }
 
@@ -5213,7 +5215,7 @@
           h += '</tr>';
         });
 
-        h += '</tbody></table></div>';
+        h += '</tbody></table></div></div>';
         h += '</div>';
       }
 
@@ -5266,7 +5268,7 @@
           h += '</tr>';
         });
 
-        h += '</tbody></table></div>';
+        h += '</tbody></table></div></div>';
       }
       h += '</div></div>';
 
@@ -5918,7 +5920,7 @@
       h += '</div>';
       h += '</div>';
 
-      h += '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);">';
+      h += '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);margin-bottom:12px;"><div style="min-width:650px;">';
       h += '<table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">';
       h += '<thead style="background:var(--bg-card);border-bottom:2px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--text-2);text-transform:uppercase;"><tr>';
       h += '<th style="padding:10px 12px;">Concepto / Origen</th>';
@@ -5947,7 +5949,7 @@
           h += '</tr>';
         });
       }
-      h += '</tbody></table></div>';
+      h += '</tbody></table></div></div>';
       h += '</div>';
     }
 
@@ -5967,7 +5969,7 @@
       h += '</div>';
 
       // Tabla de Gastos
-      h += '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);">';
+      h += '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);margin-bottom:12px;"><div style="min-width:650px;">';
       h += '<table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">';
       h += '<thead style="background:var(--bg-card);border-bottom:2px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--text-2);text-transform:uppercase;"><tr>';
       h += '<th style="padding:10px 12px;">Estado</th>';
@@ -6002,7 +6004,7 @@
           h += '</tr>';
         });
       }
-      h += '</tbody></table></div>';
+      h += '</tbody></table></div></div>';
       h += '</div>';
     }
 
@@ -6080,7 +6082,7 @@
       h += '<button class="hs-btn primary sm" id="add-deuda-btn">💳 + Nueva Deuda / Compromiso</button>';
       h += '</div>';
 
-      h += '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);">';
+      h += '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);margin-bottom:12px;"><div style="min-width:650px;">';
       h += '<table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">';
       h += '<thead style="background:var(--bg-card);border-bottom:2px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--text-2);text-transform:uppercase;"><tr>';
       h += '<th style="padding:10px 12px;">Estado</th>';
@@ -6112,7 +6114,7 @@
           h += '</tr>';
         });
       }
-      h += '</tbody></table></div>';
+      h += '</tbody></table></div></div>';
       h += '</div>';
     }
 
@@ -6147,9 +6149,11 @@
       h += '</div>';
       h += '</div>';
 
-      // Grilla de 7 Columnas
-      h += '<div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">';
-      h += '<div style="display:grid;grid-template-columns:repeat(7, minmax(0, 1fr));background:var(--bg-card);border-bottom:2px solid var(--border);text-align:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text-2);padding:8px 0;">';
+      // Grilla de 7 Columnas Amplia Deslizable (720px Swipe)
+      h += '<div style="font-size:11.5px;color:var(--text-3);margin-top:12px;margin-bottom:6px;display:flex;align-items:center;gap:6px;"><span>👉</span> <em>Desliza horizontalmente para ver todos los días y pagos:</em></div>';
+      h += '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);margin-bottom:14px;">';
+      h += '<div style="min-width:720px;background:var(--bg-elevated);">';
+      h += '<div style="display:grid;grid-template-columns:repeat(7, 1fr);background:var(--bg-card);border-bottom:2px solid var(--border);text-align:center;font-family:var(--mono);font-size:12px;font-weight:800;color:var(--text-2);padding:10px 0;">';
       ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'].forEach(dName => {
         h += '<div>' + dName + '</div>';
       });
@@ -6212,7 +6216,7 @@
         h += '<div style="background:var(--bg-base);min-height:90px;opacity:0.4;"></div>';
       }
 
-      h += '</div></div>';
+      h += '</div></div></div>';
       h += '</div>';
     }
 
@@ -7253,11 +7257,12 @@
     if (hubCard) {
       state.activeGlobalTab = hubCard.dataset.hubEnter;
       if (state.activeGlobalTab === 'portal') {
+        state.memberSubTab = 'horario';
         if (state.deviceOwner && state.deviceOwner !== 'all') {
           state.activeMemberId = state.deviceOwner;
         } else if (state.deviceOwner === 'all') {
-          if (state.lastActiveMemberId && !state.activeMemberId) {
-            state.activeMemberId = state.lastActiveMemberId;
+          if (!state.activeMemberId) {
+            state.activeMemberId = state.lastActiveMemberId || 'geanly';
           }
         } else {
           showDeviceLinkModal(() => {
