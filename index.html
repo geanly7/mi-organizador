@@ -2689,6 +2689,9 @@
           state.deviceOwner = null;
         }
       }
+      if (state.deviceOwner && state.deviceOwner !== 'all') {
+        state.activeMemberId = state.deviceOwner;
+      }
     } catch(e) { console.warn('Device owner error:', e); }
 
     // Entrada directa al Menú Principal (Hub) sin pantalla splash obligatoria
@@ -3482,15 +3485,17 @@
       h += '</div>';
       h += '<div style="font-size:11.5px;color:var(--text-2);margin-top:2px;">'+esc(mem.focusGoal || mem.defaultFocus)+'</div></div>';
       
-      // Selector Rápido de Familiares (Willman, Karen, Geanly, Franco, Benjamín)
-      h += '<div style="display:flex;align-items:center;gap:4px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;">';
-      FAMILY_MEMBERS.forEach(fm => {
-        const isCur = mem.id === fm.id;
-        h += '<button type="button" class="hs-btn sm member-quick-switch-btn' + (isCur ? ' primary' : '') + '" data-switch-mid="' + fm.id + '" style="padding:4px 8px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;border-radius:14px;' + (isCur ? 'background:' + fm.color + ';color:#fff;border-color:' + fm.color + ';' : 'background:var(--bg-surface);border:1px solid var(--border);') + '">';
-        h += '<span>' + fm.icon + '</span> <span>' + esc(fm.name) + '</span>';
-        h += '</button>';
-      });
-      h += '</div>';
+      // Selector de Familiares (Solo visible en Modo Administrador / PC de la Casa)
+      if (state.deviceOwner === 'all') {
+        h += '<div style="display:flex;align-items:center;gap:4px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;">';
+        FAMILY_MEMBERS.forEach(fm => {
+          const isCur = mem.id === fm.id;
+          h += '<button type="button" class="hs-btn sm member-quick-switch-btn' + (isCur ? ' primary' : '') + '" data-switch-mid="' + fm.id + '" style="padding:4px 8px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;border-radius:14px;' + (isCur ? 'background:' + fm.color + ';color:#fff;border-color:' + fm.color + ';' : 'background:var(--bg-surface);border:1px solid var(--border);') + '">';
+          h += '<span>' + fm.icon + '</span> <span>' + esc(fm.name) + '</span>';
+          h += '</button>';
+        });
+        h += '</div>';
+      }
 
       // Schedule Switcher
       h += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
