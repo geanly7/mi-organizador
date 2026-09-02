@@ -617,7 +617,7 @@
       scrollbar-width: thin;
       box-shadow: var(--shadow);
     }
-    .hs-table { border-collapse: collapse; width: 100%; min-width: 780px; table-layout: fixed; }
+    .hs-table { border-collapse: collapse; width: 100%; min-width: 1050px; table-layout: fixed; }
     .hs-table th {
       background: var(--th-bg);
       color: var(--text-2);
@@ -1315,6 +1315,15 @@
       .top-global-header, .member-sub-header, .top-actions, .hs-btn, #toast-container, .top-main-tabs, .member-sub-tabs, #sinergia-modal-container { display: none !important; }
       .hs-card { border: 1px solid #ddd !important; box-shadow: none !important; background: #fff !important; color: #000 !important; }
     }
+
+    /* Global Vertical Alignment for Emojis, Badges and Buttons */
+    .hs-btn, .top-nav-btn, .member-sub-btn, .hs-stat, th, td, label, .badge {
+      vertical-align: middle;
+    }
+    th, td {
+      line-height: 1.4;
+    }
+
   </style>
 </head>
 <body>
@@ -2382,6 +2391,7 @@
       const userParam = (urlParams.get('user') || '').toLowerCase().trim();
       if (userParam && ['geanly', 'willman', 'karen', 'franco', 'benjamin'].includes(userParam)) {
         state.deviceOwner = userParam;
+        state.isLockedUser = true;
         state.activeMemberId = userParam;
         state.lastActiveMemberId = userParam;
         state.activeGlobalTab = 'portal';
@@ -2389,14 +2399,12 @@
         state.appFlow = 'workspace';
       } else if (userParam === 'all' || userParam === 'admin') {
         state.deviceOwner = 'all';
+        state.isLockedUser = false;
         state.appFlow = 'hub';
+        state.activeMemberId = null;
       } else {
-        if (state.deviceOwner && state.deviceOwner !== 'all' && state.members[state.deviceOwner]) {
-          state.activeMemberId = state.deviceOwner;
-          state.appFlow = 'workspace';
-        } else {
-          state.appFlow = 'hub';
-        }
+        state.isLockedUser = false;
+        state.appFlow = 'hub';
       }
     } catch(e) {
       state.appFlow = 'hub';
@@ -3100,7 +3108,7 @@
     h += '</div>';
 
     h += '<div class="top-actions">';
-    if (mem && state.activeGlobalTab === 'portal') {
+    if (mem && state.activeGlobalTab === 'portal' && !state.isLockedUser) {
       h += '<button class="top-nav-btn" id="leave-member-btn" style="background:var(--accent-soft);color:var(--user-color, var(--accent));font-size:11px;padding:6px 10px;">⇄ Cambiar Familiar</button>';
     }
     h += '<button class="hs-btn sm" id="theme-toggle" style="border-radius:50%;width:34px;height:34px;padding:0;">'+(state.theme==='dark'?'☀️':'🌙')+'</button>';
@@ -3311,7 +3319,7 @@
     });
     h += '</div>';
 
-    h += '<div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:1px;background:var(--border);">';
+    h += '<div style="display:grid;grid-template-columns:repeat(7, minmax(0, 1fr));gap:1px;background:var(--border);">';
     for (let i = 0; i < startDayOfWeek; i++) {
       h += '<div style="background:var(--bg-base);min-height:96px;opacity:0.4;"></div>';
     }
@@ -3321,44 +3329,54 @@
       const isToday = dayKey === todayStr;
       const dayNotes = mem.calendarNotes[dayKey] || [];
       const dayExams = (mem.exams || []).filter(x => x.date === dayKey);
+      const totalEvents = dayNotes.length + dayExams.length;
 
-      const hasEvents = dayNotes.length > 0 || dayExams.length > 0;
+      const hasEvents = totalEvents > 0;
       const cellBg = isToday ? 'rgba(78,135,114,0.16)' : hasEvents ? 'rgba(124,108,255,0.08)' : 'var(--bg-elevated)';
       const cellBorder = isToday ? '2px solid var(--accent)' : hasEvents ? '1px solid rgba(124,108,255,0.4)' : '1px solid transparent';
       
-      h += '<div class="mem-cal-day-cell" data-date="' + dayKey + '" style="background:' + cellBg + ';border:' + cellBorder + ';min-height:104px;padding:6px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;border-radius:4px;transition:all 0.15s ease;" title="Clic para ver o registrar eventos en este día">';
+      h += '<div class="mem-cal-day-cell" data-date="' + dayKey + '" style="background:' + cellBg + ';border:' + cellBorder + ';min-height:96px;max-height:112px;padding:5px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;border-radius:4px;transition:all 0.15s ease;overflow:hidden;" title="Clic para ver o registrar eventos en este día">';
       
       h += '<div style="display:flex;justify-content:space-between;align-items:center;">';
       h += '<span style="font-size:12px;font-family:var(--mono);font-weight:' + (isToday ? '800' : '600') + ';color:' + (isToday ? 'var(--accent)' : 'var(--text-1)') + ';">' + day + '</span>';
-      if (dayNotes.length || dayExams.length) {
-        h += '<span style="font-size:9px;background:var(--bg-surface);padding:1px 5px;border-radius:4px;border:1px solid var(--border);color:var(--text-3);font-family:var(--mono);">' + (dayNotes.length + dayExams.length) + '</span>';
+      if (totalEvents > 0) {
+        h += '<span style="font-size:9px;background:var(--bg-surface);padding:1px 5px;border-radius:4px;border:1px solid var(--border);color:var(--text-3);font-family:var(--mono);">' + totalEvents + '</span>';
       }
       h += '</div>';
 
-      h += '<div style="display:flex;flex-direction:column;gap:3px;margin:4px 0;flex:1;overflow:hidden;">';
+      h += '<div style="display:flex;flex-direction:column;gap:2px;margin:3px 0;flex:1;overflow:hidden;">';
       
-      // Exams / Deliveries in cell
-      dayExams.forEach(ex => {
+      let renderedCount = 0;
+      // Render exams
+      dayExams.slice(0, 2).forEach(ex => {
+        renderedCount++;
         const cat = ex.categoryType || 'academico';
         let bg = 'rgba(59,130,246,0.22)', border = 'rgba(59,130,246,0.45)', col = '#3b82f6', icon = '🎓';
         if (cat === 'sinergia' || cat === 'entrega') { bg = 'rgba(218,175,55,0.22)'; border = 'rgba(218,175,55,0.45)'; col = '#DAAF37'; icon = '📦'; }
         else if (cat === 'certificacion') { bg = 'rgba(139,92,246,0.22)'; border = 'rgba(139,92,246,0.45)'; col = '#8b5cf6'; icon = '💼'; }
         else if (cat === 'personal') { bg = 'rgba(16,185,129,0.22)'; border = 'rgba(16,185,129,0.45)'; col = '#10b981'; icon = '🏠'; }
 
-        h += '<div style="font-size:10px;padding:2px 5px;border-radius:4px;background:' + bg + ';border:1px solid ' + border + ';color:' + col + ';font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (ex.done ? 'text-decoration:line-through;opacity:0.6;' : '') + '" title="[' + ex.type + '] ' + esc(ex.course) + '">' + (ex.done ? '✓ ' : icon + ' ') + esc(ex.course) + '</div>';
+        h += '<div style="font-size:9.5px;padding:2px 4px;border-radius:3px;background:' + bg + ';border:1px solid ' + border + ';color:' + col + ';font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (ex.done ? 'text-decoration:line-through;opacity:0.6;' : '') + '" title="[' + ex.type + '] ' + esc(ex.course) + '">' + (ex.done ? '✓ ' : icon + ' ') + esc(ex.course) + '</div>';
       });
 
-      // Notes in cell
-      dayNotes.forEach(n => {
-        const catKey = (n && n.cat) ? n.cat : 'cotidiano';
-        const theme = NOTE_THEMES[catKey] || NOTE_THEMES.cotidiano;
-        const noteTxt = typeof n === 'string' ? n : (n.text || n.noteText || n.content || '');
-        h += '<div style="font-size:10px;padding:2px 5px;border-radius:4px;background:' + theme.bg + ';border:1px solid ' + theme.border + ';color:var(--text-1);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="[' + theme.label + '] ' + esc(noteTxt) + '">' + theme.icon + ' ' + esc(noteTxt) + '</div>';
-      });
+      // Render notes if slots available
+      if (renderedCount < 2) {
+        dayNotes.slice(0, 2 - renderedCount).forEach(n => {
+          renderedCount++;
+          const catKey = (n && n.cat) ? n.cat : 'cotidiano';
+          const theme = NOTE_THEMES[catKey] || NOTE_THEMES.cotidiano;
+          const noteTxt = typeof n === 'string' ? n : (n.text || n.noteText || n.content || '');
+          h += '<div style="font-size:9.5px;padding:2px 4px;border-radius:3px;background:' + theme.bg + ';border:1px solid ' + theme.border + ';color:var(--text-1);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="[' + theme.label + '] ' + esc(noteTxt) + '">' + theme.icon + ' ' + esc(noteTxt) + '</div>';
+        });
+      }
+
+      if (totalEvents > 2) {
+        h += '<div style="font-size:9px;color:var(--accent);font-weight:700;font-family:var(--mono);text-align:right;">+' + (totalEvents - 2) + ' más...</div>';
+      }
 
       h += '</div>';
 
-      h += '<div style="font-size:9.5px;color:var(--text-3);text-align:right;opacity:0.7;">+ Ver / Agregar</div>';
+      h += '<div style="font-size:9px;color:var(--text-3);text-align:right;opacity:0.7;">+ Ver / Agregar</div>';
       h += '</div>';
     }
 
@@ -3601,11 +3619,25 @@
       h += '</div>';
 
       const dayBlocks = (schDays[selDay] || []);
-      if (!dayBlocks.length) {
-        h += '<div class="hs-card" style="text-align:center;padding:28px 16px;color:var(--text-3);font-size:13px;">No hay bloques programados para '+LABELS[selDay]+'. Puedes agregarlos en la pestaña <strong>✏️ Editor</strong>.</div>';
+      
+      // Category Group & Filter Bar for Mobile / Day View
+      h += '<div class="category-filter-chips" style="display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:12px;padding-bottom:4px;white-space:nowrap;">';
+      const isAllActive = !view.catFilter;
+      h += '<button class="cat-filter-chip hs-btn sm'+(isAllActive?' primary':'')+'" data-catfilter="" style="font-size:10.5px;font-weight:700;border-radius:14px;padding:3px 10px;">🌈 Todas ('+dayBlocks.length+')</button>';
+      Object.keys(cats).forEach(k => {
+        const isCatAct = (view.catFilter === k);
+        const countInDay = dayBlocks.filter(b => b[3] === k).length;
+        h += '<button class="cat-filter-chip hs-btn sm'+(isCatAct?' primary':'')+'" data-catfilter="'+k+'" style="font-size:10.5px;font-weight:700;border-radius:14px;padding:3px 10px;border-color:'+cats[k].c+';background:'+(isCatAct?cats[k].c:'var(--bg-surface)')+';color:'+(isCatAct?'#fff':cats[k].c)+';">● '+esc(cats[k].n)+' ('+countInDay+')</button>';
+      });
+      h += '</div>';
+
+      const filteredDayBlocks = view.catFilter ? dayBlocks.filter(b => b[3] === view.catFilter) : dayBlocks;
+
+      if (!filteredDayBlocks.length) {
+        h += '<div class="hs-card" style="text-align:center;padding:28px 16px;color:var(--text-3);font-size:13px;">No hay bloques programados '+(view.catFilter ? 'en esta categoría' : 'para '+LABELS[selDay])+'. Puedes agregarlos en la pestaña <strong>✏️ Editor</strong>.</div>';
       } else {
         h += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">';
-        dayBlocks.forEach((b, i) => {
+        filteredDayBlocks.forEach((b, i) => {
           const key = selDay + '-' + i;
           const isDone = !!ws.done[key];
           const isNow = current && current.day === selDay && current.idx === i;
@@ -3656,12 +3688,12 @@
             const isDone = !!ws.done[key], isNow = current && current.day===d && current.idx===entry.idx;
             const catInfo = cats[b[3]] || { c: '#7c6cff', n: b[3] };
             let cls = 'hs-block'+(isDone?' done':'')+(isNow?' now':'');
-            h += '<td class="hs-daycell'+colCls+'" rowspan="'+entry.span+'" style="height:'+(entry.span*15)+'px;position:relative;">';
+            h += '<td class="hs-daycell'+colCls+'" rowspan="'+entry.span+'" style="height:'+(entry.span*9)+'px;position:relative;">';
             h += nowLineHtml;
             h += '<div class="'+cls+'" style="--cat:'+catInfo.c+'" data-key="'+key+'">';
             h += '<span class="tm">'+b[0]+'–'+b[1]+'</span><span class="lbl">'+esc(b[2])+'</span></div></td>';
           } else {
-            h += '<td class="hs-daycell'+colCls+'" style="height:15px;position:relative;">'+nowLineHtml+'</td>';
+            h += '<td class="hs-daycell'+colCls+'" style="height:9px;position:relative;">'+nowLineHtml+'</td>';
           }
         });
         h += '</tr>';
@@ -5754,20 +5786,6 @@
       h += '</div>';
       h += '</div>';
 
-      // Botones de Atajo Rápido
-      h += '<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">';
-      h += '<span style="font-size:11px;font-family:var(--mono);color:var(--text-3);font-weight:700;">ATAJOS:</span>';
-      [
-        { s: currentMKey, e: '2026-12', lbl: '📅 Resto 2026 (4 Meses)' },
-        { s: currentMKey, e: '2027-02', lbl: '🚀 6 Meses' },
-        { s: currentMKey, e: '2027-08', lbl: '🌐 1 Año (12 Meses)' },
-        { s: currentMKey, e: '2028-08', lbl: '🎯 2 Años (24 Meses)' }
-      ].forEach(pre => {
-        const isSel = (startKey === pre.s && endKey === pre.e);
-        h += `<button type="button" class="hs-btn sm fin-quick-range-btn ${isSel ? 'primary' : ''}" data-s="${pre.s}" data-e="${pre.e}" style="padding:5px 10px;font-size:11px;font-weight:700;border-radius:12px;${isSel ? 'background:var(--accent);color:#fff;' : 'background:var(--bg-surface);border:1px solid var(--border);'}">${pre.lbl}</button>`;
-      });
-      h += '</div>';
-
       h += '</div>';
       h += '</div>';
 
@@ -6243,8 +6261,19 @@
         html += '</main>';
       }
 
+      // Preserve horizontal scroll of sub-navs
+      const prevScrolls = {};
+      document.querySelectorAll('.member-sub-tabs, .top-global-nav, [style*="overflow-x:auto"]').forEach((el, idx) => {
+        if (el.scrollLeft > 0) prevScrolls[idx] = el.scrollLeft;
+      });
+
       root.innerHTML = html;
       window.scrollTo(0, pageY);
+
+      // Restore horizontal scroll
+      document.querySelectorAll('.member-sub-tabs, .top-global-nav, [style*="overflow-x:auto"]').forEach((el, idx) => {
+        if (prevScrolls[idx]) el.scrollLeft = prevScrolls[idx];
+      });
       updatePomoUI();
       if (view.activeTab === 'sinergia' && state.sinergiaView === 'cotizador') {
         recalcQuote();
@@ -6756,8 +6785,12 @@
     const hubCard = e.target.closest('[data-hub-enter]');
     if (hubCard) {
       state.activeGlobalTab = hubCard.dataset.hubEnter;
-      if (state.activeGlobalTab === 'portal' && state.lastActiveMemberId && !state.activeMemberId) {
-        state.activeMemberId = state.lastActiveMemberId;
+      if (state.activeGlobalTab === 'portal') {
+        if (state.deviceOwner === 'all' || !state.isLockedUser) {
+          state.activeMemberId = null; // Show member selection grid cleanly
+        } else if (state.lastActiveMemberId && !state.activeMemberId) {
+          state.activeMemberId = state.lastActiveMemberId;
+        }
       }
       state.appFlow = 'workspace';
       state.quickNavOpen = false;
@@ -6860,8 +6893,10 @@
 
     const selectMemberBtn = e.target.closest('[data-action="select-member"]');
     if (selectMemberBtn) {
-      state.activeMemberId = selectMemberBtn.dataset.mid;
-      state.lastActiveMemberId = state.activeMemberId;
+      const mid = selectMemberBtn.dataset.mid;
+      if (!state.members[mid]) state.members[mid] = createMemberInitialData(mid);
+      state.activeMemberId = mid;
+      state.lastActiveMemberId = mid;
       state.activeGlobalTab = 'portal';
       state.memberSubTab = 'horario';
       if (window.innerWidth <= 768) {
@@ -6869,7 +6904,7 @@
         view.activeDay = getTodayDayKey();
       }
       saveState(); render();
-      showToast('¡Horario de ' + state.members[state.activeMemberId].name + ' cargado! 👋');
+      showToast('¡Horario de ' + (state.members[mid]?.name || mid) + ' cargado! 👋');
       return;
     }
 
@@ -6883,6 +6918,12 @@
     // View switch for schedules (Week vs Day)
     if (e.target.id==='switch-view-week') { view.scheduleMode = 'week'; render(); return; }
     if (e.target.id==='switch-view-day') { view.scheduleMode = 'day'; render(); return; }
+    // Category filter in Day View
+    const catChip = e.target.closest('.cat-filter-chip');
+    if (catChip) {
+      view.catFilter = catChip.dataset.catfilter || null;
+      render(); return;
+    }
     const activeDayBtn = e.target.closest('[data-activeday]');
     if (activeDayBtn) { view.activeDay = activeDayBtn.dataset.activeday; render(); return; }
 
@@ -9485,6 +9526,8 @@
     
   loadState();
   render();
+  window.state = state;
+  window.render = render;
 
 
     if ('serviceWorker' in navigator) {
