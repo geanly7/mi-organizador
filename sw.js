@@ -1,5 +1,5 @@
 // Service Worker profesional con auto-actualización y soporte offline para Familia GFB & Sinergia
-const CACHE_NAME = 'familia-gfb-v50.0';
+const CACHE_NAME = 'familia-gfb-v51.0';
 const ASSETS = [
   './',
   './index.html',
@@ -35,6 +35,8 @@ self.addEventListener('activate', (e) => {
 // y Cache-First como respaldo offline
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  // No interceptar peticiones externas como Firebase Realtime Database
+  if (!e.request.url.startsWith(self.location.origin)) return;
 
   e.respondWith(
     fetch(e.request)
