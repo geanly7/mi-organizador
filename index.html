@@ -8036,6 +8036,7 @@
           // Portal / Horarios tab
           if (!mem) {
             html += renderPortalSelection();
+          } else {
             if (state.memberSubTab === 'horario') html += renderHorario(mem, current);
             else if (state.memberSubTab === 'calendario') html += renderMemberCalendar(mem);
             else if (state.memberSubTab === 'examenes') html += renderMemberExams(mem);
