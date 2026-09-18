@@ -1737,26 +1737,51 @@
   let cloudSyncTimeout = null;
   let isReceivingCloudData = false;
   let cloudStatus = 'connecting'; // 'connected' | 'offline' | 'connecting'
+  const CLIENT_SESSION_ID = 'sess_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now();
+  let pendingCloudRender = false;
 
-  function syncToFirebase() {
+  function isUserActivelyTyping() {
+    const el = document.activeElement;
+    if (!el) return false;
+    const tag = el.tagName ? el.tagName.toUpperCase() : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable) return true;
+    if (document.getElementById('smodal-backdrop') || document.querySelector('.smodal-box')) return true;
+    return false;
+  }
+
+  function syncToFirebase(targetMemberId = null) {
     if (!window.firebase || !window.gfbFirebaseDb) return;
     try {
-      const payload = {
-        members: state.members,
-        sinergia: state.sinergia,
-        sinergiaMaterials: state.sinergiaMaterials,
-        sinergiaSuppliers: state.sinergiaSuppliers,
-        finanzas: state.finanzas,
-        household: state.household,
-        academic: state.academic,
-        lastUpdated: Date.now()
-      };
-      window.gfbFirebaseDb.ref('gfb_cloud_sync').set(payload)
+      const updates = {};
+      updates['lastUpdated'] = Date.now();
+      updates['clientId'] = CLIENT_SESSION_ID;
+
+      const mid = targetMemberId || state.activeMemberId;
+      if (mid && state.members && state.members[mid]) {
+        updates['members/' + mid] = state.members[mid];
+      } else if (state.members) {
+        updates['members'] = state.members;
+      }
+
+      if (state.activeGlobalTab === 'sinergia') {
+        if (state.sinergia) updates['sinergia'] = state.sinergia;
+        if (state.sinergiaMaterials) updates['sinergiaMaterials'] = state.sinergiaMaterials;
+        if (state.sinergiaSuppliers) updates['sinergiaSuppliers'] = state.sinergiaSuppliers;
+      } else if (state.activeGlobalTab === 'finanzas') {
+        if (state.finanzas) updates['finanzas'] = state.finanzas;
+      } else {
+        if (state.sinergia) updates['sinergia'] = state.sinergia;
+        if (state.finanzas) updates['finanzas'] = state.finanzas;
+        if (state.household) updates['household'] = state.household;
+        if (state.academic) updates['academic'] = state.academic;
+      }
+
+      window.gfbFirebaseDb.ref('gfb_cloud_sync').update(updates)
         .then(() => {
           cloudStatus = 'connected';
         })
         .catch(err => {
-          console.warn('Firebase set error:', err);
+          console.warn('Firebase sync error:', err);
           cloudStatus = 'offline';
         });
     } catch(e) {
@@ -1820,17 +1845,27 @@
     return map[dayNum] || 'LUNES';
   }
 
+  function getTodayDateStr() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
   const isMobileInitial = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   let view = {
     selectedKey: null,
     editorDay: getTodayDayKey(),
     showNewSchedule: false,
-    scheduleMode: isMobileInitial ? 'day' : 'week',
+    scheduleMode: 'week', // Horarios inician en vista semanal
     activeDay: getTodayDayKey(),
     showPaso2Catalog: false,
     paso2CatFilter: 'todos',
-    paso2Search: ''
+    paso2Search: '',
+    expenseFilter: 'todos',
+    betFilter: 'todas'
   };
 
   let pomo = {
@@ -2016,7 +2051,15 @@
       weekData: {},
       examMode: false,
       pomoCount: 0,
-      pomoDate: ''
+      pomoDate: '',
+      personalExpenses: memberId === 'geanly' ? [
+        { id: 'exp_init_1', date: getTodayDateStr(), concept: 'Almuerzo / Menú universitario UNCP', category: 'Alimentación', amount: 12.00, method: 'Yape / Plin' },
+        { id: 'exp_init_2', date: getTodayDateStr(), concept: 'Pasaje ida y vuelta (El Tambo - UNCP)', category: 'Transporte', amount: 3.00, method: 'Efectivo' }
+      ] : [],
+      sportsBets: memberId === 'geanly' ? [
+        { id: 'bet_init_1', date: getTodayDateStr(), match: 'Real Madrid vs Bayern Múnich — Gana Real Madrid', platform: 'Betsson', betAmount: 20.00, quota: 1.95, status: 'ganada' },
+        { id: 'bet_init_2', date: getTodayDateStr(), match: 'Universitario vs Sporting Cristal — Más de 2.5 goles', platform: 'Apuesta Total', betAmount: 15.00, quota: 2.10, status: 'pendiente' }
+      ] : []
     };
   }
 
@@ -2720,6 +2763,10 @@
     const container = document.getElementById('sinergia-modal-container');
     if (container) container.innerHTML = '';
     activeModalCallback = null;
+    if (pendingCloudRender) {
+      pendingCloudRender = false;
+      render();
+    }
   }
 
   /* ================================================================
@@ -2963,6 +3010,22 @@
       }
     });
 
+    // Asegurar estructura de Gastos Personales y Apuestas para Geanly
+    if (state.members && state.members.geanly) {
+      if (!state.members.geanly.personalExpenses) {
+        state.members.geanly.personalExpenses = [
+          { id: 'exp_init_1', date: getTodayDateStr(), concept: 'Almuerzo / Menú universitario UNCP', category: 'Alimentación', amount: 12.00, method: 'Yape / Plin' },
+          { id: 'exp_init_2', date: getTodayDateStr(), concept: 'Pasaje ida y vuelta (El Tambo - UNCP)', category: 'Transporte', amount: 3.00, method: 'Efectivo' }
+        ];
+      }
+      if (!state.members.geanly.sportsBets) {
+        state.members.geanly.sportsBets = [
+          { id: 'bet_init_1', date: getTodayDateStr(), match: 'Real Madrid vs Bayern Múnich — Gana Real Madrid', platform: 'Betsson', betAmount: 20.00, quota: 1.95, status: 'ganada' },
+          { id: 'bet_init_2', date: getTodayDateStr(), match: 'Universitario vs Sporting Cristal — Más de 2.5 goles', platform: 'Apuesta Total', betAmount: 15.00, quota: 2.10, status: 'pendiente' }
+        ];
+      }
+    }
+
     const cfg = state.pomoConfig || { focusMins: 25, breakMins: 5 };
     if (state.pomoRunning && state.pomoEndTime) {
       const diffSecs = Math.floor((state.pomoEndTime - Date.now()) / 1000);
@@ -3003,23 +3066,49 @@
         // Escuchar cambios en vivo desde cualquier celular o PC
         syncRef.on('value', (snapshot) => {
           const cloudData = snapshot.val();
-          if (cloudData && typeof cloudData === 'object' && cloudData.lastUpdated) {
-            isReceivingCloudData = true;
-            if (cloudData.members) state.members = cloudData.members;
-            if (cloudData.sinergia) state.sinergia = cloudData.sinergia;
-            if (cloudData.sinergiaMaterials) state.sinergiaMaterials = cloudData.sinergiaMaterials;
-            if (cloudData.sinergiaSuppliers) state.sinergiaSuppliers = cloudData.sinergiaSuppliers;
-            if (cloudData.finanzas) state.finanzas = cloudData.finanzas;
-            if (cloudData.household) state.household = cloudData.household;
-            if (cloudData.academic) state.academic = cloudData.academic;
-            
-            store.set('familia-gfb-workspace-v5', JSON.stringify(state));
-            cloudStatus = 'connected';
-            isReceivingCloudData = false;
-            render();
-          } else {
+          if (!cloudData || typeof cloudData !== 'object' || !cloudData.lastUpdated) {
             // Primera vez: subir datos locales para poblar la nube
             syncToFirebase();
+            return;
+          }
+
+          // 1. Si el cambio fue enviado por este mismo cliente, ignorar para evitar bucle de re-render y borrado de inputs
+          if (cloudData.clientId === CLIENT_SESSION_ID) {
+            cloudStatus = 'connected';
+            return;
+          }
+
+          isReceivingCloudData = true;
+
+          // 2. Fusionar miembros de forma segura sin pisar el perfil que se esté escribiendo localmente
+          if (cloudData.members && typeof cloudData.members === 'object') {
+            if (!state.members) state.members = {};
+            Object.keys(cloudData.members).forEach(mid => {
+              if (mid === state.activeMemberId && isUserActivelyTyping()) {
+                pendingCloudRender = true;
+              } else {
+                state.members[mid] = cloudData.members[mid];
+              }
+            });
+          }
+
+          if (cloudData.sinergia) state.sinergia = cloudData.sinergia;
+          if (cloudData.sinergiaMaterials) state.sinergiaMaterials = cloudData.sinergiaMaterials;
+          if (cloudData.sinergiaSuppliers) state.sinergiaSuppliers = cloudData.sinergiaSuppliers;
+          if (cloudData.finanzas) state.finanzas = cloudData.finanzas;
+          if (cloudData.household) state.household = cloudData.household;
+          if (cloudData.academic) state.academic = cloudData.academic;
+          
+          store.set('familia-gfb-workspace-v5', JSON.stringify(state));
+          cloudStatus = 'connected';
+          isReceivingCloudData = false;
+
+          // 3. Si el usuario está escribiendo, jamás interrumpirlo con render()
+          if (isUserActivelyTyping()) {
+            pendingCloudRender = true;
+          } else {
+            pendingCloudRender = false;
+            render();
           }
         }, (err) => {
           console.warn('Firebase listen error:', err);
@@ -3845,6 +3934,9 @@
       h += '<button class="member-sub-btn'+(state.memberSubTab==='horario'?' active':'')+'" data-msub="horario">📅 Horario & Enfoque</button>';
       const totalEvents = ((mem.exams||[]).length) + Object.keys(mem.calendarNotes||{}).reduce((acc, k) => acc + (mem.calendarNotes[k]||[]).length, 0);
       h += '<button class="member-sub-btn'+(state.memberSubTab==='calendario'||state.memberSubTab==='examenes'?' active':'')+'" data-msub="calendario">🗓️ Calendario & Entregas (' + totalEvents + ')</button>';
+      if (mem.id === 'geanly') {
+        h += '<button class="member-sub-btn'+(state.memberSubTab==='gastos-apuestas'?' active':'')+'" data-msub="gastos-apuestas">💰 Gastos & Apuestas</button>';
+      }
       h += '<button class="member-sub-btn'+(state.memberSubTab==='boveda'?' active':'')+'" data-msub="boveda">☁️ Mi Bóveda Drive (5 TB)</button>';
       h += '<button class="member-sub-btn'+(state.memberSubTab==='stats'?' active':'')+'" data-msub="stats">📊 Estadísticas</button>';
       h += '<button class="member-sub-btn'+(state.memberSubTab==='editor'?' active':'')+'" data-msub="editor">✏️ Editor Total & Colores</button>';
@@ -4231,8 +4323,8 @@
     h += '</div>';
 
     h += '<div class="hs-view-switch">';
-    h += '<button class="hs-view-switch-btn'+(view.scheduleMode==='day'?' active':'')+'" id="switch-view-day">📱 Vista Diaria</button>';
     h += '<button class="hs-view-switch-btn'+(view.scheduleMode==='week'?' active':'')+'" id="switch-view-week">📅 Vista Semanal</button>';
+    h += '<button class="hs-view-switch-btn'+(view.scheduleMode==='day'?' active':'')+'" id="switch-view-day">📱 Vista Diaria</button>';
     h += '</div>';
     h += '</div>';
 
@@ -5125,6 +5217,378 @@
     }
 
     h += '</div>';
+    return h;
+  }
+
+  /* ================================================================
+     GEANLY: GASTOS PERSONALES & CONTROL DE APUESTAS DEPORTIVAS
+     ================================================================ */
+  function renderGeanlyPersonalFinance(mem) {
+    if (!mem) return '';
+    if (!mem.personalExpenses) mem.personalExpenses = [];
+    if (!mem.sportsBets) mem.sportsBets = [];
+
+    const todayStr = getTodayDateStr();
+    const curMonthStr = todayStr.substring(0, 7); // YYYY-MM
+
+    // Cálculos de Gastos Personales
+    const expenses = mem.personalExpenses;
+    const totalExpAll = expenses.reduce((acc, x) => acc + (parseFloat(x.amount) || 0), 0);
+    const totalExpMonth = expenses.filter(x => (x.date || '').startsWith(curMonthStr)).reduce((acc, x) => acc + (parseFloat(x.amount) || 0), 0);
+    const totalExpToday = expenses.filter(x => x.date === todayStr).reduce((acc, x) => acc + (parseFloat(x.amount) || 0), 0);
+
+    // Cálculos de Apuestas Deportivas
+    const bets = mem.sportsBets;
+    let totalBetAmount = 0;
+    let totalReturnAmount = 0;
+    let countWon = 0;
+    let countLost = 0;
+    let countPending = 0;
+
+    bets.forEach(b => {
+      const stake = parseFloat(b.betAmount) || 0;
+      const quota = parseFloat(b.quota) || 1.0;
+      const status = b.status || 'pendiente';
+
+      if (status === 'ganada') {
+        countWon++;
+        totalBetAmount += stake;
+        totalReturnAmount += (stake * quota);
+      } else if (status === 'perdida') {
+        countLost++;
+        totalBetAmount += stake;
+      } else {
+        countPending++;
+      }
+    });
+
+    const netBetProfit = totalReturnAmount - totalBetAmount;
+    const settledCount = countWon + countLost;
+    const winRate = settledCount > 0 ? ((countWon / settledCount) * 100).toFixed(1) : '0.0';
+
+    let h = '<div class="geanly-finance-container" style="max-width:1300px;margin:0 auto;padding:12px 16px 60px;">';
+
+    // Banner Superior con Resumen KPI
+    h += '<div style="background:linear-gradient(135deg, rgba(218,175,55,0.18), rgba(14,16,21,0.95));border:1px solid rgba(218,175,55,0.4);border-radius:var(--radius-md);padding:18px 22px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">';
+    h += '<div>';
+    h += '<div style="display:flex;align-items:center;gap:10px;">';
+    h += '<span style="font-size:26px;">💰</span>';
+    h += '<h2 style="font-size:20px;font-weight:800;color:#fff;margin:0;">Finanzas Personales & Apuestas — Geanly</h2>';
+    h += '<span style="background:rgba(218,175,55,0.25);color:#F4D068;border:1px solid rgba(218,175,55,0.45);padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;font-family:var(--mono);">Módulo Exclusivo</span>';
+    h += '</div>';
+    h += '<p style="font-size:12.5px;color:var(--text-2);margin:4px 0 0 36px;">Control de gastos diarios personales y balance neto de apuestas deportivas en vivo (ganadas vs. perdidas).</p>';
+    h += '</div>';
+
+    // Fila de Indicadores Rápidos (KPIs)
+    h += '<div style="display:flex;gap:12px;flex-wrap:wrap;">';
+    
+    // KPI 1: Gastos Mes
+    h += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;min-width:130px;text-align:center;">';
+    h += '<div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;font-family:var(--mono);font-weight:700;">Gastos del Mes</div>';
+    h += '<div style="font-size:17px;font-weight:800;color:#f87171;margin-top:2px;">S/. ' + totalExpMonth.toFixed(2) + '</div>';
+    h += '<div style="font-size:10.5px;color:var(--text-3);">Hoy: S/. ' + totalExpToday.toFixed(2) + '</div>';
+    h += '</div>';
+
+    // KPI 2: Balance Apuestas
+    const profitColor = netBetProfit > 0 ? '#4ade80' : (netBetProfit < 0 ? '#f87171' : 'var(--text-2)');
+    const profitPrefix = netBetProfit > 0 ? '+S/. ' : (netBetProfit < 0 ? '-S/. ' : 'S/. ');
+    const profitVal = Math.abs(netBetProfit).toFixed(2);
+    h += '<div style="background:var(--bg-card);border:1px solid ' + (netBetProfit >= 0 ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)') + ';border-radius:var(--radius-sm);padding:8px 14px;min-width:145px;text-align:center;">';
+    h += '<div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;font-family:var(--mono);font-weight:700;">Balance Apuestas</div>';
+    h += '<div style="font-size:17px;font-weight:800;color:' + profitColor + ';margin-top:2px;">' + profitPrefix + profitVal + '</div>';
+    h += '<div style="font-size:10.5px;color:' + profitColor + ';font-weight:600;">' + (netBetProfit > 0 ? '🏆 Ganancia Neta' : (netBetProfit < 0 ? '📉 En Pérdida' : 'Balance neutro')) + '</div>';
+    h += '</div>';
+
+    // KPI 3: Win Rate
+    h += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;min-width:115px;text-align:center;">';
+    h += '<div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;font-family:var(--mono);font-weight:700;">Acierto Bets</div>';
+    h += '<div style="font-size:17px;font-weight:800;color:#38bdf8;margin-top:2px;">' + winRate + '%</div>';
+    h += '<div style="font-size:10.5px;color:var(--text-3);">' + countWon + 'G / ' + countLost + 'P</div>';
+    h += '</div>';
+    h += '</div>'; // Fin KPIs
+    h += '</div>'; // Fin Banner
+
+    // GRID: 2 COLUMNAS (Gastos Personales a la izquierda, Apuestas Deportivas a la derecha)
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));gap:20px;align-items:start;">';
+
+    /* =======================================================
+       COLUMNA 1: GASTOS DIARIOS (GASTOS PERSONALES)
+       ======================================================= */
+    h += '<div class="gf-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;">';
+    
+    // Título
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;">';
+    h += '<div style="display:flex;align-items:center;gap:8px;">';
+    h += '<span style="font-size:20px;">🧾</span>';
+    h += '<h3 style="font-size:16px;font-weight:800;color:var(--text-1);margin:0;">Gastos Diarios (Personales)</h3>';
+    h += '</div>';
+    h += '<span style="font-size:12px;font-family:var(--mono);color:#f87171;font-weight:700;">Total: S/. ' + totalExpAll.toFixed(2) + '</span>';
+    h += '</div>';
+
+    // Formulario de Registro de Gasto
+    h += '<form id="gf-expense-form" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;">';
+    h += '<div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:8px;display:flex;align-items:center;gap:5px;"><span>➕</span> Registrar Nuevo Gasto</div>';
+    
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
+    h += '<div>';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">FECHA</label>';
+    h += '<input type="date" id="gexp-date" value="' + todayStr + '" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
+    h += '</div>';
+    h += '<div>';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">CATEGORÍA</label>';
+    h += '<select id="gexp-cat" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
+    h += '<option value="Alimentación">🍔 Alimentación & Menú</option>';
+    h += '<option value="Transporte">🚌 Transporte & Pasajes</option>';
+    h += '<option value="Universidad">📚 Universidad & Copias</option>';
+    h += '<option value="Antojos">☕ Antojos & Salidas</option>';
+    h += '<option value="Salud / Rehab">💊 Salud & Gimnasio</option>';
+    h += '<option value="Otros">📦 Otros Gastos</option>';
+    h += '</select>';
+    h += '</div>';
+    h += '</div>';
+
+    h += '<div style="display:grid;grid-template-columns:1.8fr 1fr 1fr;gap:8px;margin-bottom:10px;">';
+    h += '<div>';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">CONCEPTO / DETALLE</label>';
+    h += '<input type="text" id="gexp-concept" placeholder="Ej: Menú universitario" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
+    h += '</div>';
+    h += '<div>';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">MONTO (S/.)</label>';
+    h += '<input type="number" id="gexp-amount" step="0.50" min="0" placeholder="0.00" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);font-weight:700;box-sizing:border-box;">';
+    h += '</div>';
+    h += '<div>';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">MÉTODO</label>';
+    h += '<select id="gexp-method" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
+    h += '<option value="Yape / Plin">💜 Yape / Plin</option>';
+    h += '<option value="Efectivo">💵 Efectivo</option>';
+    h += '<option value="Tarjeta">💳 Tarjeta</option>';
+    h += '</select>';
+    h += '</div>';
+    h += '</div>';
+
+    h += '<button type="submit" class="hs-btn primary sm" id="add-personal-expense-btn" style="width:100%;justify-content:center;padding:7px;font-size:12px;font-weight:700;">+ Registrar Gasto</button>';
+    h += '</form>';
+
+    // Filtros de Gastos
+    const curExpFilter = view.expenseFilter || 'todos';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
+    h += '<div style="font-size:11px;font-family:var(--mono);color:var(--text-3);text-transform:uppercase;">Historial de Gastos:</div>';
+    h += '<div style="display:flex;gap:4px;">';
+    h += '<button class="hs-btn sm ' + (curExpFilter === 'hoy' ? 'primary' : '') + '" data-exp-filter="hoy" style="padding:2px 8px;font-size:10.5px;">Hoy</button>';
+    h += '<button class="hs-btn sm ' + (curExpFilter === 'mes' ? 'primary' : '') + '" data-exp-filter="mes" style="padding:2px 8px;font-size:10.5px;">Este Mes</button>';
+    h += '<button class="hs-btn sm ' + (curExpFilter === 'todos' ? 'primary' : '') + '" data-exp-filter="todos" style="padding:2px 8px;font-size:10.5px;">Todos</button>';
+    h += '</div>';
+    h += '</div>';
+
+    // Lista de Gastos
+    let filteredExpenses = [...expenses].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    if (curExpFilter === 'hoy') {
+      filteredExpenses = filteredExpenses.filter(x => x.date === todayStr);
+    } else if (curExpFilter === 'mes') {
+      filteredExpenses = filteredExpenses.filter(x => (x.date || '').startsWith(curMonthStr));
+    }
+
+    if (!filteredExpenses.length) {
+      h += '<div style="text-align:center;padding:26px 14px;color:var(--text-3);background:var(--bg-elevated);border-radius:var(--radius-sm);border:1px dashed var(--border);font-size:12px;">';
+      h += '<div>🍃 No hay gastos registrados con este filtro.</div>';
+      h += '<div style="font-size:11px;margin-top:4px;">Registra tus gastos arriba para llevar la cuenta exacta.</div>';
+      h += '</div>';
+    } else {
+      h += '<div style="display:flex;flex-direction:column;gap:6px;max-height:480px;overflow-y:auto;padding-right:2px;">';
+      const catColors = {
+        'Alimentación': '#f59e0b',
+        'Transporte': '#06b6d4',
+        'Universidad': '#8b5cf6',
+        'Antojos': '#ec4899',
+        'Salud / Rehab': '#10b981',
+        'Otros': '#94a3b8'
+      };
+
+      filteredExpenses.forEach(x => {
+        const cColor = catColors[x.category] || '#94a3b8';
+        h += '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;gap:8px;">';
+        
+        h += '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">';
+        h += '<div style="width:3px;height:28px;background:' + cColor + ';border-radius:2px;flex-shrink:0;"></div>';
+        h += '<div style="min-width:0;">';
+        h += '<div style="font-size:12.5px;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(x.concept || 'Gasto') + '</div>';
+        h += '<div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--text-3);margin-top:2px;">';
+        h += '<span style="font-family:var(--mono);">' + (x.date || '—') + '</span>';
+        h += '<span style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:4px;color:' + cColor + ';">' + esc(x.category || 'Varios') + '</span>';
+        if (x.method) h += '<span>• ' + esc(x.method) + '</span>';
+        h += '</div>';
+        h += '</div>';
+        h += '</div>';
+
+        h += '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">';
+        h += '<span style="font-size:13.5px;font-weight:800;font-family:var(--mono);color:#f87171;">-S/. ' + (parseFloat(x.amount) || 0).toFixed(2) + '</span>';
+        h += '<button class="hs-btn sm" data-action="delete-personal-expense" data-id="' + x.id + '" style="padding:3px 6px;color:var(--text-3);background:transparent;border:none;" title="Eliminar gasto">🗑️</button>';
+        h += '</div>';
+
+        h += '</div>';
+      });
+      h += '</div>';
+    }
+
+    h += '</div>'; // Fin Columna 1 (Gastos)
+
+    /* =======================================================
+       COLUMNA 2: APUESTAS DEPORTIVAS (GANADAS VS PERDIDAS)
+       ======================================================= */
+    h += '<div class="gf-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;">';
+
+    // Título
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;">';
+    h += '<div style="display:flex;align-items:center;gap:8px;">';
+    h += '<span style="font-size:20px;">⚽</span>';
+    h += '<h3 style="font-size:16px;font-weight:800;color:var(--text-1);margin:0;">Apuestas Deportivas (Ganadas vs Perdidas)</h3>';
+    h += '</div>';
+    h += '<span style="font-size:12px;font-family:var(--mono);color:' + profitColor + ';font-weight:700;">Neto: ' + profitPrefix + profitVal + '</span>';
+    h += '</div>';
+
+    // Formulario de Registrar Apuesta
+    h += '<form id="gf-bet-form" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;">';
+    h += '<div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:8px;display:flex;align-items:center;gap:5px;"><span>🎯</span> Nueva Apuesta Deportiva</div>';
+
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
+    h += '<div>';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">FECHA DEL EVENTO</label>';
+    h += '<input type="date" id="gbet-date" value="' + todayStr + '" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
+    h += '</div>';
+    h += '<div>';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">CASA / PLATAFORMA</label>';
+    h += '<select id="gbet-platform" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
+    h += '<option value="Betsson">Betsson</option>';
+    h += '<option value="Bet365">Bet365</option>';
+    h += '<option value="Apuesta Total">Apuesta Total</option>';
+    h += '<option value="Inkabet">Inkabet</option>';
+    h += '<option value="Te Apuesto">Te Apuesto</option>';
+    h += '<option value="Doradobet">Doradobet</option>';
+    h += '<option value="Otra">Otra plataforma</option>';
+    h += '</select>';
+    h += '</div>';
+    h += '</div>';
+
+    h += '<div style="margin-bottom:8px;">';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">PARTIDO / PRONÓSTICO / JUGADA</label>';
+    h += '<input type="text" id="gbet-match" placeholder="Ej: Real Madrid vs Chelsea — Ambos Anotan & +2.5 goles" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
+    h += '</div>';
+
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">';
+    h += '<div>';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">APUESTA (S/.)</label>';
+    h += '<input type="number" id="gbet-amount" step="1.00" min="0" placeholder="20.00" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);font-weight:700;box-sizing:border-box;">';
+    h += '</div>';
+    h += '<div>';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">CUOTA (X.XX)</label>';
+    h += '<input type="number" id="gbet-quota" step="0.01" min="1.01" placeholder="1.95" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);font-weight:700;box-sizing:border-box;">';
+    h += '</div>';
+    h += '<div>';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">ESTADO INICIAL</label>';
+    h += '<select id="gbet-status" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
+    h += '<option value="pendiente">⏳ Pendiente</option>';
+    h += '<option value="ganada">✅ Ganada</option>';
+    h += '<option value="perdida">❌ Perdida</option>';
+    h += '</select>';
+    h += '</div>';
+    h += '</div>';
+
+    h += '<button type="submit" class="hs-btn primary sm" id="add-sports-bet-btn" style="width:100%;justify-content:center;padding:7px;font-size:12px;font-weight:700;">+ Registrar Apuesta Deportiva</button>';
+    h += '</form>';
+
+    // Filtros de Apuestas
+    const curBetFilter = view.betFilter || 'todas';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
+    h += '<div style="font-size:11px;font-family:var(--mono);color:var(--text-3);text-transform:uppercase;">Historial de Jugadas:</div>';
+    h += '<div style="display:flex;gap:4px;">';
+    h += '<button class="hs-btn sm ' + (curBetFilter === 'todas' ? 'primary' : '') + '" data-bet-filter="todas" style="padding:2px 8px;font-size:10.5px;">Todas (' + bets.length + ')</button>';
+    h += '<button class="hs-btn sm ' + (curBetFilter === 'pendientes' ? 'primary' : '') + '" data-bet-filter="pendientes" style="padding:2px 8px;font-size:10.5px;">⏳ Pendientes (' + countPending + ')</button>';
+    h += '<button class="hs-btn sm ' + (curBetFilter === 'ganadas' ? 'primary' : '') + '" data-bet-filter="ganadas" style="padding:2px 8px;font-size:10.5px;color:#4ade80;">✅ Ganadas (' + countWon + ')</button>';
+    h += '<button class="hs-btn sm ' + (curBetFilter === 'perdidas' ? 'primary' : '') + '" data-bet-filter="perdidas" style="padding:2px 8px;font-size:10.5px;color:#f87171;">❌ Perdidas (' + countLost + ')</button>';
+    h += '</div>';
+    h += '</div>';
+
+    // Lista de Apuestas
+    let filteredBets = [...bets].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    if (curBetFilter === 'pendientes') {
+      filteredBets = filteredBets.filter(b => b.status === 'pendiente');
+    } else if (curBetFilter === 'ganadas') {
+      filteredBets = filteredBets.filter(b => b.status === 'ganada');
+    } else if (curBetFilter === 'perdidas') {
+      filteredBets = filteredBets.filter(b => b.status === 'perdida');
+    }
+
+    if (!filteredBets.length) {
+      h += '<div style="text-align:center;padding:26px 14px;color:var(--text-3);background:var(--bg-elevated);border-radius:var(--radius-sm);border:1px dashed var(--border);font-size:12px;">';
+      h += '<div>🎯 No hay apuestas registradas en esta vista.</div>';
+      h += '<div style="font-size:11px;margin-top:4px;">Registra tus jugadas para llevar el balance exacto de lo ganado y perdido.</div>';
+      h += '</div>';
+    } else {
+      h += '<div style="display:flex;flex-direction:column;gap:8px;max-height:480px;overflow-y:auto;padding-right:2px;">';
+      
+      filteredBets.forEach(b => {
+        const stake = parseFloat(b.betAmount) || 0;
+        const quota = parseFloat(b.quota) || 1.0;
+        const ret = stake * quota;
+        const profit = ret - stake;
+        const status = b.status || 'pendiente';
+
+        let statusBorder = 'var(--border)';
+        let profitBadge = '';
+        if (status === 'ganada') {
+          statusBorder = 'rgba(74,222,128,0.4)';
+          profitBadge = '<span style="color:#4ade80;font-weight:800;font-size:12px;">+S/. ' + profit.toFixed(2) + ' Ganancia</span>';
+        } else if (status === 'perdida') {
+          statusBorder = 'rgba(248,113,113,0.4)';
+          profitBadge = '<span style="color:#f87171;font-weight:800;font-size:12px;">-S/. ' + stake.toFixed(2) + ' Pérdida</span>';
+        } else {
+          statusBorder = 'rgba(56,189,248,0.3)';
+          profitBadge = '<span style="color:#38bdf8;font-weight:700;font-size:11.5px;">Potencial: S/. ' + ret.toFixed(2) + '</span>';
+        }
+
+        h += '<div style="background:var(--bg-elevated);border:1px solid ' + statusBorder + ';border-radius:var(--radius-sm);padding:10px 12px;">';
+        
+        // Fila 1: Fecha, Plataforma y Borrar
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
+        h += '<div style="display:flex;align-items:center;gap:6px;">';
+        h += '<span style="font-family:var(--mono);font-size:10.5px;color:var(--text-3);">' + (b.date || '—') + '</span>';
+        h += '<span style="background:rgba(218,175,55,0.18);color:#F4D068;border:1px solid rgba(218,175,55,0.3);padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;">' + esc(b.platform || 'Casa') + '</span>';
+        h += '</div>';
+        h += '<button class="hs-btn sm" data-action="delete-sports-bet" data-id="' + b.id + '" style="padding:2px 5px;color:var(--text-3);background:transparent;border:none;" title="Eliminar apuesta">🗑️</button>';
+        h += '</div>';
+
+        // Fila 2: Partido / Pronóstico
+        h += '<div style="font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:6px;">' + esc(b.match || 'Apuesta') + '</div>';
+
+        // Fila 3: Detalle Económico
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-surface);padding:6px 10px;border-radius:var(--radius-xs);margin-bottom:8px;font-size:11.5px;font-family:var(--mono);">';
+        h += '<div>Apostado: <strong>S/. ' + stake.toFixed(2) + '</strong> | Cuota: <strong style="color:var(--accent);">' + quota.toFixed(2) + '</strong></div>';
+        h += '<div>' + profitBadge + '</div>';
+        h += '</div>';
+
+        // Fila 4: Botones interactivos de cambio de resultado con 1 click
+        h += '<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">';
+        h += '<span style="font-size:10.5px;color:var(--text-3);font-family:var(--mono);margin-right:2px;">Resultado:</span>';
+        
+        h += '<button class="hs-btn sm" data-action="set-bet-status" data-id="' + b.id + '" data-status="ganada" style="padding:3px 9px;font-size:11px;font-weight:700;' + (status === 'ganada' ? 'background:rgba(74,222,128,0.25);border:1px solid #4ade80;color:#4ade80;' : 'background:var(--bg-input);border:1px solid var(--border);color:var(--text-2);') + '">✅ Ganada</button>';
+        
+        h += '<button class="hs-btn sm" data-action="set-bet-status" data-id="' + b.id + '" data-status="perdida" style="padding:3px 9px;font-size:11px;font-weight:700;' + (status === 'perdida' ? 'background:rgba(248,113,113,0.25);border:1px solid #f87171;color:#f87171;' : 'background:var(--bg-input);border:1px solid var(--border);color:var(--text-2);') + '">❌ Perdida</button>';
+        
+        h += '<button class="hs-btn sm" data-action="set-bet-status" data-id="' + b.id + '" data-status="pendiente" style="padding:3px 9px;font-size:11px;font-weight:700;' + (status === 'pendiente' ? 'background:rgba(56,189,248,0.25);border:1px solid #38bdf8;color:#38bdf8;' : 'background:var(--bg-input);border:1px solid var(--border);color:var(--text-2);') + '">⏳ Pendiente</button>';
+        
+        h += '</div>';
+
+        h += '</div>';
+      });
+
+      h += '</div>';
+    }
+
+    h += '</div>'; // Fin Columna 2 (Apuestas)
+
+    h += '</div>'; // Fin Grid
+
+    h += '</div>'; // Fin Container
     return h;
   }
 
@@ -7572,10 +8036,10 @@
           // Portal / Horarios tab
           if (!mem) {
             html += renderPortalSelection();
-          } else {
             if (state.memberSubTab === 'horario') html += renderHorario(mem, current);
             else if (state.memberSubTab === 'calendario') html += renderMemberCalendar(mem);
             else if (state.memberSubTab === 'examenes') html += renderMemberExams(mem);
+            else if (state.memberSubTab === 'gastos-apuestas' && mem.id === 'geanly') html += renderGeanlyPersonalFinance(mem);
             else if (state.memberSubTab === 'boveda' || state.memberSubTab === 'academico') html += renderMemberDriveVault(mem);
             else if (state.memberSubTab === 'stats') html += renderStats(mem);
             else if (state.memberSubTab === 'editor') html += renderEditor(mem);
@@ -7583,6 +8047,12 @@
         }
         html += '</main>';
       }
+
+      // Preserve active input focus and cursor position if re-rendered
+      const activeEl = document.activeElement;
+      const activeId = activeEl ? activeEl.id : null;
+      const activeSelStart = (activeEl && 'selectionStart' in activeEl) ? activeEl.selectionStart : null;
+      const activeSelEnd = (activeEl && 'selectionEnd' in activeEl) ? activeEl.selectionEnd : null;
 
       // Preserve horizontal scroll of sub-navs
       const prevScrolls = {};
@@ -7592,6 +8062,17 @@
 
       root.innerHTML = html;
       window.scrollTo(0, pageY);
+
+      // Restore active input focus and selection
+      if (activeId) {
+        const restoredEl = document.getElementById(activeId);
+        if (restoredEl && (restoredEl.tagName === 'INPUT' || restoredEl.tagName === 'TEXTAREA')) {
+          restoredEl.focus();
+          if (activeSelStart !== null && restoredEl.setSelectionRange) {
+            try { restoredEl.setSelectionRange(activeSelStart, activeSelEnd); } catch(e){}
+          }
+        }
+      }
 
       // Restore horizontal scroll
       document.querySelectorAll('.member-sub-tabs, .top-global-nav, [style*="overflow-x:auto"]').forEach((el, idx) => {
@@ -8244,12 +8725,8 @@
       state.memberSubTab = 'horario';
       state.appFlow = 'workspace';
       state.isLockedUser = false;
-      if (window.innerWidth <= 768) {
-        view.scheduleMode = 'day';
-        view.activeDay = getTodayDayKey();
-      } else {
-        view.scheduleMode = 'week';
-      }
+      view.scheduleMode = 'week'; // Vista semanal por defecto
+      view.activeDay = getTodayDayKey();
       saveState(); render();
       showToast('¡Horario de ' + (mem.name || mid) + ' cargado! 👋');
       return;
@@ -8260,6 +8737,161 @@
     if (msub) {
       state.memberSubTab = msub.dataset.msub;
       saveState(); render(); return;
+    }
+
+    // Filter expenses (Geanly)
+    const expF = e.target.closest('[data-exp-filter]');
+    if (expF) {
+      view.expenseFilter = expF.dataset.expFilter;
+      render(); return;
+    }
+
+    // Filter bets (Geanly)
+    const betF = e.target.closest('[data-bet-filter]');
+    if (betF) {
+      view.betFilter = betF.dataset.betFilter;
+      render(); return;
+    }
+
+    // Add personal expense (Geanly)
+    if (e.target.id === 'add-personal-expense-btn' || e.target.closest('#add-personal-expense-btn')) {
+      e.preventDefault();
+      const mem = getActiveMember();
+      if (!mem || mem.id !== 'geanly') return;
+      if (!mem.personalExpenses) mem.personalExpenses = [];
+      
+      const dateInp = document.getElementById('gexp-date');
+      const catInp = document.getElementById('gexp-cat');
+      const conceptInp = document.getElementById('gexp-concept');
+      const amountInp = document.getElementById('gexp-amount');
+      const methodInp = document.getElementById('gexp-method');
+
+      const amount = parseFloat(amountInp ? amountInp.value : 0);
+      const concept = (conceptInp ? conceptInp.value : '').trim();
+
+      if (!amount || amount <= 0) {
+        showToast('Ingresa un monto válido para el gasto', 'warn');
+        if (amountInp) amountInp.focus();
+        return;
+      }
+      if (!concept) {
+        showToast('Ingresa el concepto del gasto (ej: Menú, Pasajes)', 'warn');
+        if (conceptInp) conceptInp.focus();
+        return;
+      }
+
+      const newExp = {
+        id: 'exp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        date: dateInp ? dateInp.value : getTodayDateStr(),
+        category: catInp ? catInp.value : 'Alimentación',
+        concept: concept,
+        amount: amount,
+        method: methodInp ? methodInp.value : 'Yape / Plin'
+      };
+
+      mem.personalExpenses.push(newExp);
+      saveState();
+      render();
+      showToast('✓ Gasto de S/. ' + amount.toFixed(2) + ' registrado');
+      return;
+    }
+
+    // Delete personal expense (Geanly)
+    const delExpBtn = e.target.closest('[data-action="delete-personal-expense"]');
+    if (delExpBtn) {
+      const mem = getActiveMember();
+      if (mem && mem.id === 'geanly' && mem.personalExpenses) {
+        const id = delExpBtn.dataset.id;
+        mem.personalExpenses = mem.personalExpenses.filter(x => x.id !== id);
+        saveState();
+        render();
+        showToast('Gasto eliminado');
+      }
+      return;
+    }
+
+    // Add sports bet (Geanly)
+    if (e.target.id === 'add-sports-bet-btn' || e.target.closest('#add-sports-bet-btn')) {
+      e.preventDefault();
+      const mem = getActiveMember();
+      if (!mem || mem.id !== 'geanly') return;
+      if (!mem.sportsBets) mem.sportsBets = [];
+
+      const dateInp = document.getElementById('gbet-date');
+      const platInp = document.getElementById('gbet-platform');
+      const matchInp = document.getElementById('gbet-match');
+      const amountInp = document.getElementById('gbet-amount');
+      const quotaInp = document.getElementById('gbet-quota');
+      const statusInp = document.getElementById('gbet-status');
+
+      const match = (matchInp ? matchInp.value : '').trim();
+      const amount = parseFloat(amountInp ? amountInp.value : 0);
+      const quota = parseFloat(quotaInp ? quotaInp.value : 1.0);
+
+      if (!match) {
+        showToast('Ingresa el partido o jugada de la apuesta', 'warn');
+        if (matchInp) matchInp.focus();
+        return;
+      }
+      if (!amount || amount <= 0) {
+        showToast('Ingresa el monto apostado en Soles', 'warn');
+        if (amountInp) amountInp.focus();
+        return;
+      }
+      if (!quota || quota <= 1.0) {
+        showToast('Ingresa una cuota válida (ej: 1.85)', 'warn');
+        if (quotaInp) quotaInp.focus();
+        return;
+      }
+
+      const newBet = {
+        id: 'bet_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        date: dateInp ? dateInp.value : getTodayDateStr(),
+        platform: platInp ? platInp.value : 'Betsson',
+        match: match,
+        betAmount: amount,
+        quota: quota,
+        status: statusInp ? statusInp.value : 'pendiente'
+      };
+
+      mem.sportsBets.push(newBet);
+      saveState();
+      render();
+      showToast('✓ Apuesta de S/. ' + amount.toFixed(2) + ' registrada');
+      return;
+    }
+
+    // Set bet status (Ganada, Perdida, Pendiente)
+    const setStatusBtn = e.target.closest('[data-action="set-bet-status"]');
+    if (setStatusBtn) {
+      const mem = getActiveMember();
+      if (mem && mem.id === 'geanly' && mem.sportsBets) {
+        const id = setStatusBtn.dataset.id;
+        const newStatus = setStatusBtn.dataset.status;
+        const bet = mem.sportsBets.find(b => b.id === id);
+        if (bet) {
+          bet.status = newStatus;
+          saveState();
+          render();
+          const label = newStatus === 'ganada' ? '¡Apuesta Marcada como Ganada! 🏆' : (newStatus === 'perdida' ? 'Apuesta marcada como Perdida' : 'Apuesta marcada como Pendiente ⏳');
+          showToast(label);
+        }
+      }
+      return;
+    }
+
+    // Delete sports bet (Geanly)
+    const delBetBtn = e.target.closest('[data-action="delete-sports-bet"]');
+    if (delBetBtn) {
+      const mem = getActiveMember();
+      if (mem && mem.id === 'geanly' && mem.sportsBets) {
+        const id = delBetBtn.dataset.id;
+        mem.sportsBets = mem.sportsBets.filter(b => b.id !== id);
+        saveState();
+        render();
+        showToast('Apuesta eliminada');
+      }
+      return;
     }
 
     // View switch for schedules (Week vs Day)
@@ -11274,14 +11906,60 @@
     document.addEventListener('change', function(e) {
       try { handleChange(e); } catch(err) { console.error('Change error:', err); }
     });
+
+    let typingIdleTimer = null;
     document.addEventListener('input', function(e) {
       try {
-        handleChange(e);
-        // Debounce automático para inputs de texto largos y búsquedas
+        // En inputs de texto no ejecutar handleChange destructivo que llame render() en cada pulsación
+        if (!e.target.matches('input[type="text"], textarea, input[type="search"], .cat-name-input, #gexp-concept, #gbet-match')) {
+          handleChange(e);
+        } else {
+          // Sincronizar filtros de búsqueda en memoria sin destruir el elemento
+          if (e.target.id === 'sinergia-search-proj') view.sinergiaSearch = e.target.value;
+          if (e.target.id === 'sinergia-search-mat') view.sinergiaMatSearch = e.target.value;
+          if (e.target.id === 'paso2-search-mat') view.paso2Search = e.target.value;
+          if (e.target.id === 'finanzas-search-input') view.finanzasSearch = e.target.value;
+        }
+
+        // Timer de inactividad: cuando el usuario termine de tipear y pase el tiempo, aplicar renders pendientes de la nube
+        if (typingIdleTimer) clearTimeout(typingIdleTimer);
+        typingIdleTimer = setTimeout(() => {
+          if (!isUserActivelyTyping() && pendingCloudRender) {
+            pendingCloudRender = false;
+            render();
+          }
+        }, 2500);
+
+        // Debounce automático para inputs de texto largos y nombres
         if (e.target.matches('input[type="text"], textarea, .cat-name-input')) {
-          debounceSave(400);
+          debounceSave(500);
         }
       } catch(err) { console.error('Input error:', err); }
+    });
+
+    // Al salir de un campo de texto (focusout), si había un cambio de la nube en cola, refrescar suavemente
+    document.addEventListener('focusout', function(e) {
+      if (pendingCloudRender) {
+        setTimeout(() => {
+          if (!isUserActivelyTyping() && pendingCloudRender) {
+            pendingCloudRender = false;
+            render();
+          }
+        }, 300);
+      }
+    });
+
+    // Envío de formularios rápidos
+    document.addEventListener('submit', function(e) {
+      if (e.target.id === 'gf-expense-form') {
+        e.preventDefault();
+        const btn = document.getElementById('add-personal-expense-btn');
+        if (btn) btn.click();
+      } else if (e.target.id === 'gf-bet-form') {
+        e.preventDefault();
+        const btn = document.getElementById('add-sports-bet-btn');
+        if (btn) btn.click();
+      }
     });
 
     // Incremento / decremento interactivo con la rueda del ratón (mouse wheel) al posicionar el cursor sobre inputs numéricos

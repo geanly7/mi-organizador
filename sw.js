@@ -1,5 +1,5 @@
 // Service Worker profesional con auto-actualización y soporte offline para Familia GFB & Sinergia
-const CACHE_NAME = 'familia-gfb-v51.0';
+const CACHE_NAME = 'familia-gfb-v52.0';
 const ASSETS = [
   './',
   './index.html',
