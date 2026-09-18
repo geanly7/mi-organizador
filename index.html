@@ -1853,6 +1853,16 @@
     return `${y}-${m}-${day}`;
   }
 
+  function formatChartDateLabel(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length < 3) return dateStr;
+    const day = parts[2];
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const mIdx = parseInt(parts[1], 10) - 1;
+    return `${day} ${months[mIdx] || parts[1]}`;
+  }
+
   const isMobileInitial = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   let view = {
@@ -2053,12 +2063,17 @@
       pomoCount: 0,
       pomoDate: '',
       personalExpenses: memberId === 'geanly' ? [
-        { id: 'exp_init_1', date: getTodayDateStr(), concept: 'Almuerzo / Menú universitario UNCP', category: 'Alimentación', amount: 12.00, method: 'Yape / Plin' },
-        { id: 'exp_init_2', date: getTodayDateStr(), concept: 'Pasaje ida y vuelta (El Tambo - UNCP)', category: 'Transporte', amount: 3.00, method: 'Efectivo' }
+        { id: 'pfin_1', type: 'ingreso', date: '2026-09-15', concept: 'Apoyo / Dinero de mis padres para la semana', category: 'Apoyo Familiar / Padres', amount: 150.00, method: 'Yape / Plin' },
+        { id: 'pfin_2', type: 'gasto', date: '2026-09-16', concept: 'Menú universitario UNCP + Pasajes', category: 'Alimentación', amount: 15.00, method: 'Yape / Plin' },
+        { id: 'pfin_3', type: 'gasto', date: '2026-09-17', concept: 'Copias y materiales de estudio', category: 'Universidad', amount: 8.50, method: 'Efectivo' },
+        { id: 'pfin_4', type: 'ingreso', date: '2026-09-18', concept: 'Modelado 3D SketchUp (Sinergia Studio)', category: 'Sinergia / Trabajos 3D', amount: 180.00, method: 'Transferencia / Tarjeta' },
+        { id: 'pfin_5', type: 'gasto', date: '2026-09-18', concept: 'Menú universitario + Transporte ida y vuelta', category: 'Alimentación', amount: 14.50, method: 'Yape / Plin' }
       ] : [],
       sportsBets: memberId === 'geanly' ? [
-        { id: 'bet_init_1', date: getTodayDateStr(), match: 'Real Madrid vs Bayern Múnich — Gana Real Madrid', platform: 'Betsson', betAmount: 20.00, quota: 1.95, status: 'ganada' },
-        { id: 'bet_init_2', date: getTodayDateStr(), match: 'Universitario vs Sporting Cristal — Más de 2.5 goles', platform: 'Apuesta Total', betAmount: 15.00, quota: 2.10, status: 'pendiente' }
+        { id: 'sbet_1', date: '2026-09-15', platform: 'Betano', startBankroll: 100.00, endBankroll: 135.00, profit: 35.00, notes: 'Champions League — Combinada triunfadora' },
+        { id: 'sbet_2', date: '2026-09-16', platform: 'Betano', startBankroll: 135.00, endBankroll: 115.00, profit: -20.00, notes: 'Fase de grupos Europa League' },
+        { id: 'sbet_3', date: '2026-09-17', platform: 'Betano', startBankroll: 115.00, endBankroll: 160.00, profit: 45.00, notes: 'Liga española + Ambos anotan' },
+        { id: 'sbet_4', date: '2026-09-18', platform: 'Betano', startBankroll: 160.00, endBankroll: 210.00, profit: 50.00, notes: 'Liga 1 Perú + Real Madrid ganador' }
       ] : []
     };
   }
@@ -3010,19 +3025,35 @@
       }
     });
 
-    // Asegurar estructura de Gastos Personales y Apuestas para Geanly
+    // Asegurar estructura de Finanzas Personales y Apuestas para Geanly
     if (state.members && state.members.geanly) {
-      if (!state.members.geanly.personalExpenses) {
+      if (!state.members.geanly.personalExpenses || !state.members.geanly.personalExpenses.length) {
         state.members.geanly.personalExpenses = [
-          { id: 'exp_init_1', date: getTodayDateStr(), concept: 'Almuerzo / Menú universitario UNCP', category: 'Alimentación', amount: 12.00, method: 'Yape / Plin' },
-          { id: 'exp_init_2', date: getTodayDateStr(), concept: 'Pasaje ida y vuelta (El Tambo - UNCP)', category: 'Transporte', amount: 3.00, method: 'Efectivo' }
+          { id: 'pfin_1', type: 'ingreso', date: '2026-09-15', concept: 'Apoyo / Dinero de mis padres para la semana', category: 'Apoyo Familiar / Padres', amount: 150.00, method: 'Yape / Plin' },
+          { id: 'pfin_2', type: 'gasto', date: '2026-09-16', concept: 'Menú universitario UNCP + Pasajes', category: 'Alimentación', amount: 15.00, method: 'Yape / Plin' },
+          { id: 'pfin_3', type: 'gasto', date: '2026-09-17', concept: 'Copias y materiales de estudio', category: 'Universidad', amount: 8.50, method: 'Efectivo' },
+          { id: 'pfin_4', type: 'ingreso', date: '2026-09-18', concept: 'Modelado 3D SketchUp (Sinergia Studio)', category: 'Sinergia / Trabajos 3D', amount: 180.00, method: 'Transferencia / Tarjeta' },
+          { id: 'pfin_5', type: 'gasto', date: '2026-09-18', concept: 'Menú universitario + Transporte ida y vuelta', category: 'Alimentación', amount: 14.50, method: 'Yape / Plin' }
         ];
+      } else {
+        state.members.geanly.personalExpenses.forEach(x => {
+          if (!x.type) x.type = 'gasto';
+        });
       }
-      if (!state.members.geanly.sportsBets) {
+      if (!state.members.geanly.sportsBets || !state.members.geanly.sportsBets.length) {
         state.members.geanly.sportsBets = [
-          { id: 'bet_init_1', date: getTodayDateStr(), match: 'Real Madrid vs Bayern Múnich — Gana Real Madrid', platform: 'Betsson', betAmount: 20.00, quota: 1.95, status: 'ganada' },
-          { id: 'bet_init_2', date: getTodayDateStr(), match: 'Universitario vs Sporting Cristal — Más de 2.5 goles', platform: 'Apuesta Total', betAmount: 15.00, quota: 2.10, status: 'pendiente' }
+          { id: 'sbet_1', date: '2026-09-15', platform: 'Betano', startBankroll: 100.00, endBankroll: 135.00, profit: 35.00, notes: 'Champions League — Combinada triunfadora' },
+          { id: 'sbet_2', date: '2026-09-16', platform: 'Betano', startBankroll: 135.00, endBankroll: 115.00, profit: -20.00, notes: 'Fase de grupos Europa League' },
+          { id: 'sbet_3', date: '2026-09-17', platform: 'Betano', startBankroll: 115.00, endBankroll: 160.00, profit: 45.00, notes: 'Liga española + Ambos anotan' },
+          { id: 'sbet_4', date: '2026-09-18', platform: 'Betano', startBankroll: 160.00, endBankroll: 210.00, profit: 50.00, notes: 'Liga 1 Perú + Real Madrid ganador' }
         ];
+      } else {
+        state.members.geanly.sportsBets.forEach(b => {
+          if (b.startBankroll === undefined) b.startBankroll = parseFloat(b.betAmount) || 0;
+          if (b.endBankroll === undefined) b.endBankroll = b.status === 'ganada' ? (parseFloat(b.betAmount)||0)*(parseFloat(b.quota)||1) : 0;
+          if (b.profit === undefined) b.profit = b.endBankroll - b.startBankroll;
+          if (!b.platform) b.platform = 'Betano';
+        });
       }
     }
 
@@ -3935,7 +3966,7 @@
       const totalEvents = ((mem.exams||[]).length) + Object.keys(mem.calendarNotes||{}).reduce((acc, k) => acc + (mem.calendarNotes[k]||[]).length, 0);
       h += '<button class="member-sub-btn'+(state.memberSubTab==='calendario'||state.memberSubTab==='examenes'?' active':'')+'" data-msub="calendario">🗓️ Calendario & Entregas (' + totalEvents + ')</button>';
       if (mem.id === 'geanly') {
-        h += '<button class="member-sub-btn'+(state.memberSubTab==='gastos-apuestas'?' active':'')+'" data-msub="gastos-apuestas">💰 Gastos & Apuestas</button>';
+        h += '<button class="member-sub-btn'+(state.memberSubTab==='gastos-apuestas'?' active':'')+'" data-msub="gastos-apuestas">💰 Finanzas & Apuestas</button>';
       }
       h += '<button class="member-sub-btn'+(state.memberSubTab==='boveda'?' active':'')+'" data-msub="boveda">☁️ Mi Bóveda Drive (5 TB)</button>';
       h += '<button class="member-sub-btn'+(state.memberSubTab==='stats'?' active':'')+'" data-msub="stats">📊 Estadísticas</button>';
@@ -5221,7 +5252,7 @@
   }
 
   /* ================================================================
-     GEANLY: GASTOS PERSONALES & CONTROL DE APUESTAS DEPORTIVAS
+     GEANLY: FINANZAS PERSONALES (INGRESOS & GASTOS) Y APUESTAS DEPORTIVAS (BETANO)
      ================================================================ */
   function renderGeanlyPersonalFinance(mem) {
     if (!mem) return '';
@@ -5231,104 +5262,207 @@
     const todayStr = getTodayDateStr();
     const curMonthStr = todayStr.substring(0, 7); // YYYY-MM
 
-    // Cálculos de Gastos Personales
-    const expenses = mem.personalExpenses;
-    const totalExpAll = expenses.reduce((acc, x) => acc + (parseFloat(x.amount) || 0), 0);
-    const totalExpMonth = expenses.filter(x => (x.date || '').startsWith(curMonthStr)).reduce((acc, x) => acc + (parseFloat(x.amount) || 0), 0);
-    const totalExpToday = expenses.filter(x => x.date === todayStr).reduce((acc, x) => acc + (parseFloat(x.amount) || 0), 0);
+    // Normalizar movimientos financieros (Ingresos vs Gastos)
+    const finMovements = mem.personalExpenses.map(x => ({
+      id: x.id,
+      type: x.type || 'gasto',
+      date: x.date || todayStr,
+      concept: x.concept || 'Movimiento',
+      category: x.category || (x.type === 'ingreso' ? 'Apoyo Familiar / Padres' : 'Otros'),
+      amount: parseFloat(x.amount) || 0,
+      method: x.method || 'Yape / Plin'
+    }));
 
-    // Cálculos de Apuestas Deportivas
-    const bets = mem.sportsBets;
-    let totalBetAmount = 0;
-    let totalReturnAmount = 0;
-    let countWon = 0;
-    let countLost = 0;
-    let countPending = 0;
+    // Métricas de Finanzas Personales
+    const totalIngresosAll = finMovements.filter(x => x.type === 'ingreso').reduce((acc, x) => acc + x.amount, 0);
+    const totalGastosAll = finMovements.filter(x => x.type === 'gasto').reduce((acc, x) => acc + x.amount, 0);
+    const totalSaldoAll = totalIngresosAll - totalGastosAll;
 
-    bets.forEach(b => {
-      const stake = parseFloat(b.betAmount) || 0;
-      const quota = parseFloat(b.quota) || 1.0;
-      const status = b.status || 'pendiente';
+    const monthMovements = finMovements.filter(x => (x.date || '').startsWith(curMonthStr));
+    const totalIngresosMes = monthMovements.filter(x => x.type === 'ingreso').reduce((acc, x) => acc + x.amount, 0);
+    const totalGastosMes = monthMovements.filter(x => x.type === 'gasto').reduce((acc, x) => acc + x.amount, 0);
+    const totalSaldoMes = totalIngresosMes - totalGastosMes;
 
-      if (status === 'ganada') {
-        countWon++;
-        totalBetAmount += stake;
-        totalReturnAmount += (stake * quota);
-      } else if (status === 'perdida') {
-        countLost++;
-        totalBetAmount += stake;
-      } else {
-        countPending++;
-      }
+    // Normalizar Apuestas Deportivas (Capital Diario)
+    const bets = mem.sportsBets.map(b => {
+      const sBank = b.startBankroll !== undefined ? parseFloat(b.startBankroll) : (parseFloat(b.betAmount) || 0);
+      let eBank = b.endBankroll !== undefined ? parseFloat(b.endBankroll) : (b.status === 'ganada' ? (parseFloat(b.betAmount)||0)*(parseFloat(b.quota)||1) : 0);
+      let profit = b.profit !== undefined ? parseFloat(b.profit) : (eBank - sBank);
+      return {
+        id: b.id,
+        date: b.date || todayStr,
+        platform: b.platform || 'Betano',
+        startBankroll: sBank,
+        endBankroll: eBank,
+        profit: profit,
+        notes: b.notes || b.match || 'Sesión de apuestas'
+      };
     });
 
-    const netBetProfit = totalReturnAmount - totalBetAmount;
-    const settledCount = countWon + countLost;
-    const winRate = settledCount > 0 ? ((countWon / settledCount) * 100).toFixed(1) : '0.0';
+    const betsSorted = [...bets].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    const totalProfitAll = bets.reduce((acc, b) => acc + b.profit, 0);
+    const currentBankroll = betsSorted.length ? betsSorted[betsSorted.length - 1].endBankroll : 0;
+    const daysWon = bets.filter(b => b.profit > 0).length;
+    const daysLost = bets.filter(b => b.profit < 0).length;
+
+    // Generar Gráfica de Finanzas Personales (Ingresos vs Gastos)
+    const finByDate = {};
+    const finSorted = [...finMovements].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    finSorted.forEach(m => {
+      const d = m.date;
+      if (!finByDate[d]) finByDate[d] = { ingresos: 0, gastos: 0 };
+      if (m.type === 'ingreso') finByDate[d].ingresos += m.amount;
+      else finByDate[d].gastos += m.amount;
+    });
+    const distinctFinDates = Object.keys(finByDate).sort();
+    const finXLabels = distinctFinDates.map(d => formatChartDateLabel(d));
+    const finSeriesIngresos = [];
+    const finSeriesGastos = [];
+    const finSeriesSaldo = [];
+    let runningFinBal = 0;
+    distinctFinDates.forEach(d => {
+      const ing = Math.round(finByDate[d].ingresos * 100) / 100;
+      const gas = Math.round(finByDate[d].gastos * 100) / 100;
+      runningFinBal += (ing - gas);
+      finSeriesIngresos.push(ing);
+      finSeriesGastos.push(gas);
+      finSeriesSaldo.push(Math.round(runningFinBal * 100) / 100);
+    });
+
+    let finChartHtml = '';
+    if (distinctFinDates.length >= 2) {
+      finChartHtml = renderMultiLineChart({
+        chartId: 'chart-personal-fin',
+        title: '📊 Flujo de Dinero Personal (Ingresos vs Gastos Diarios)',
+        subtitle: 'Comparativa de dinero recibido de padres/trabajos vs gastos y saldo disponible',
+        height: 270,
+        xLabels: finXLabels,
+        series: [
+          { id: 'ingresos', label: 'Dinero Recibido (+)', color: '#4ade80', values: finSeriesIngresos },
+          { id: 'gastos', label: 'Gastos Diarios (-)', color: '#f87171', values: finSeriesGastos },
+          { id: 'saldo', label: 'Saldo Acumulado (S/.)', color: '#60a5fa', values: finSeriesSaldo }
+        ]
+      });
+    } else if (distinctFinDates.length === 1) {
+      finChartHtml = '<div style="background:var(--bg-elevated);border:1px dashed var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center;font-size:12px;color:var(--text-3);margin-bottom:12px;">📊 Tienes 1 fecha registrada. Al ingresar más días de ingresos o gastos, aquí se graficará automáticamente el flujo de dinero.</div>';
+    }
+
+    // Generar Gráfica de Apuestas Deportivas (Capital Diario Betano)
+    const betXLabels = betsSorted.map(b => formatChartDateLabel(b.date));
+    const betSeriesCapital = betsSorted.map(b => Math.round(b.endBankroll * 100) / 100);
+    const betSeriesDailyProfit = betsSorted.map(b => Math.round(b.profit * 100) / 100);
+    let runningBetProfit = 0;
+    const betSeriesCumProfit = betsSorted.map(b => {
+      runningBetProfit += b.profit;
+      return Math.round(runningBetProfit * 100) / 100;
+    });
+
+    let betsChartHtml = '';
+    if (betsSorted.length >= 2) {
+      betsChartHtml = renderMultiLineChart({
+        chartId: 'chart-sports-bets',
+        title: '📈 Evolución de Capital & Rendimiento Diario (Betano / Apuestas)',
+        subtitle: 'Crecimiento de tu capital día a día y ganancia/pérdida neta acumulada en Soles',
+        height: 270,
+        xLabels: betXLabels,
+        series: [
+          { id: 'capital', label: 'Capital Final del Día (S/.)', color: '#DAAF37', values: betSeriesCapital },
+          { id: 'ganancia_dia', label: 'Resultado del Día (+/-)', color: '#4ade80', values: betSeriesDailyProfit },
+          { id: 'ganancia_acum', label: 'Ganancia Neta Acumulada (S/.)', color: '#38bdf8', values: betSeriesCumProfit }
+        ]
+      });
+    } else if (betsSorted.length === 1) {
+      betsChartHtml = '<div style="background:var(--bg-elevated);border:1px dashed var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center;font-size:12px;color:var(--text-3);margin-bottom:12px;">📈 Tienes 1 día registrado (Capital: S/. ' + (betsSorted[0].endBankroll||0).toFixed(2) + '). Al registrar 2 o más días, aquí se trazará tu gráfica automática con curvas de rendimiento.</div>';
+    }
 
     let h = '<div class="geanly-finance-container" style="max-width:1300px;margin:0 auto;padding:12px 16px 60px;">';
 
-    // Banner Superior con Resumen KPI
+    // Banner Superior con Resumen KPI General
     h += '<div style="background:linear-gradient(135deg, rgba(218,175,55,0.18), rgba(14,16,21,0.95));border:1px solid rgba(218,175,55,0.4);border-radius:var(--radius-md);padding:18px 22px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">';
     h += '<div>';
     h += '<div style="display:flex;align-items:center;gap:10px;">';
     h += '<span style="font-size:26px;">💰</span>';
-    h += '<h2 style="font-size:20px;font-weight:800;color:#fff;margin:0;">Finanzas Personales & Apuestas — Geanly</h2>';
-    h += '<span style="background:rgba(218,175,55,0.25);color:#F4D068;border:1px solid rgba(218,175,55,0.45);padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;font-family:var(--mono);">Módulo Exclusivo</span>';
+    h += '<h2 style="font-size:20px;font-weight:800;color:#fff;margin:0;">Finanzas Personales & Apuestas Deportivas (Betano)</h2>';
+    h += '<span style="background:rgba(218,175,55,0.25);color:#F4D068;border:1px solid rgba(218,175,55,0.45);padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;font-family:var(--mono);">Geanly Exclusivo</span>';
     h += '</div>';
-    h += '<p style="font-size:12.5px;color:var(--text-2);margin:4px 0 0 36px;">Control de gastos diarios personales y balance neto de apuestas deportivas en vivo (ganadas vs. perdidas).</p>';
+    h += '<p style="font-size:12.5px;color:var(--text-2);margin:4px 0 0 36px;">Control de ingresos de padres o trabajos vs gastos diarios, y evolución gráfica de capital en apuestas deportivas.</p>';
     h += '</div>';
 
     // Fila de Indicadores Rápidos (KPIs)
-    h += '<div style="display:flex;gap:12px;flex-wrap:wrap;">';
+    h += '<div style="display:flex;gap:10px;flex-wrap:wrap;">';
     
-    // KPI 1: Gastos Mes
-    h += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;min-width:130px;text-align:center;">';
-    h += '<div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;font-family:var(--mono);font-weight:700;">Gastos del Mes</div>';
-    h += '<div style="font-size:17px;font-weight:800;color:#f87171;margin-top:2px;">S/. ' + totalExpMonth.toFixed(2) + '</div>';
-    h += '<div style="font-size:10.5px;color:var(--text-3);">Hoy: S/. ' + totalExpToday.toFixed(2) + '</div>';
+    // KPI 1: Ingresos Mes
+    h += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;min-width:120px;text-align:center;">';
+    h += '<div style="font-size:10px;color:var(--text-3);text-transform:uppercase;font-family:var(--mono);font-weight:700;">Ingresos (Mes)</div>';
+    h += '<div style="font-size:16px;font-weight:800;color:#4ade80;margin-top:2px;">+S/. ' + totalIngresosMes.toFixed(2) + '</div>';
+    h += '<div style="font-size:10px;color:var(--text-3);">Padres & Trabajos</div>';
     h += '</div>';
 
-    // KPI 2: Balance Apuestas
-    const profitColor = netBetProfit > 0 ? '#4ade80' : (netBetProfit < 0 ? '#f87171' : 'var(--text-2)');
-    const profitPrefix = netBetProfit > 0 ? '+S/. ' : (netBetProfit < 0 ? '-S/. ' : 'S/. ');
-    const profitVal = Math.abs(netBetProfit).toFixed(2);
-    h += '<div style="background:var(--bg-card);border:1px solid ' + (netBetProfit >= 0 ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)') + ';border-radius:var(--radius-sm);padding:8px 14px;min-width:145px;text-align:center;">';
-    h += '<div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;font-family:var(--mono);font-weight:700;">Balance Apuestas</div>';
-    h += '<div style="font-size:17px;font-weight:800;color:' + profitColor + ';margin-top:2px;">' + profitPrefix + profitVal + '</div>';
-    h += '<div style="font-size:10.5px;color:' + profitColor + ';font-weight:600;">' + (netBetProfit > 0 ? '🏆 Ganancia Neta' : (netBetProfit < 0 ? '📉 En Pérdida' : 'Balance neutro')) + '</div>';
+    // KPI 2: Gastos Mes
+    h += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;min-width:120px;text-align:center;">';
+    h += '<div style="font-size:10px;color:var(--text-3);text-transform:uppercase;font-family:var(--mono);font-weight:700;">Gastos (Mes)</div>';
+    h += '<div style="font-size:16px;font-weight:800;color:#f87171;margin-top:2px;">-S/. ' + totalGastosMes.toFixed(2) + '</div>';
+    h += '<div style="font-size:10px;color:var(--text-3);">Comida & Pasajes</div>';
     h += '</div>';
 
-    // KPI 3: Win Rate
-    h += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 14px;min-width:115px;text-align:center;">';
-    h += '<div style="font-size:10.5px;color:var(--text-3);text-transform:uppercase;font-family:var(--mono);font-weight:700;">Acierto Bets</div>';
-    h += '<div style="font-size:17px;font-weight:800;color:#38bdf8;margin-top:2px;">' + winRate + '%</div>';
-    h += '<div style="font-size:10.5px;color:var(--text-3);">' + countWon + 'G / ' + countLost + 'P</div>';
+    // KPI 3: Saldo Disponible
+    const saldoColor = totalSaldoMes >= 0 ? '#60a5fa' : '#f87171';
+    h += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;min-width:120px;text-align:center;">';
+    h += '<div style="font-size:10px;color:var(--text-3);text-transform:uppercase;font-family:var(--mono);font-weight:700;">Saldo Mes</div>';
+    h += '<div style="font-size:16px;font-weight:800;color:' + saldoColor + ';margin-top:2px;">' + (totalSaldoMes >= 0 ? '+S/. ' : '-S/. ') + Math.abs(totalSaldoMes).toFixed(2) + '</div>';
+    h += '<div style="font-size:10px;color:var(--text-3);">Disponible</div>';
     h += '</div>';
+
+    // KPI 4: Capital Betano
+    h += '<div style="background:var(--bg-card);border:1px solid rgba(218,175,55,0.3);border-radius:var(--radius-sm);padding:8px 12px;min-width:125px;text-align:center;">';
+    h += '<div style="font-size:10px;color:#F4D068;text-transform:uppercase;font-family:var(--mono);font-weight:700;">Capital Betano</div>';
+    h += '<div style="font-size:16px;font-weight:800;color:#F4D068;margin-top:2px;">S/. ' + currentBankroll.toFixed(2) + '</div>';
+    h += '<div style="font-size:10px;color:var(--text-3);">Saldo en cuenta</div>';
+    h += '</div>';
+
+    // KPI 5: Ganancia Neta Apuestas
+    const betProfitCol = totalProfitAll >= 0 ? '#4ade80' : '#f87171';
+    const betProfitSign = totalProfitAll >= 0 ? '+S/. ' : '-S/. ';
+    h += '<div style="background:var(--bg-card);border:1px solid ' + (totalProfitAll >= 0 ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)') + ';border-radius:var(--radius-sm);padding:8px 12px;min-width:130px;text-align:center;">';
+    h += '<div style="font-size:10px;color:var(--text-3);text-transform:uppercase;font-family:var(--mono);font-weight:700;">Ganancia Apuestas</div>';
+    h += '<div style="font-size:16px;font-weight:800;color:' + betProfitCol + ';margin-top:2px;">' + betProfitSign + Math.abs(totalProfitAll).toFixed(2) + '</div>';
+    h += '<div style="font-size:10px;color:' + betProfitCol + ';font-weight:600;">' + (totalProfitAll >= 0 ? '🏆 En Ganancia' : '📉 En Pérdida') + '</div>';
+    h += '</div>';
+
     h += '</div>'; // Fin KPIs
     h += '</div>'; // Fin Banner
 
-    // GRID: 2 COLUMNAS (Gastos Personales a la izquierda, Apuestas Deportivas a la derecha)
-    h += '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));gap:20px;align-items:start;">';
+    // GRID: 2 COLUMNAS
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(370px, 1fr));gap:20px;align-items:start;">';
 
     /* =======================================================
-       COLUMNA 1: GASTOS DIARIOS (GASTOS PERSONALES)
+       COLUMNA 1: FINANZAS PERSONALES (INGRESOS & GASTOS)
        ======================================================= */
     h += '<div class="gf-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;">';
     
-    // Título
+    // Título de Sección
     h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;">';
     h += '<div style="display:flex;align-items:center;gap:8px;">';
-    h += '<span style="font-size:20px;">🧾</span>';
-    h += '<h3 style="font-size:16px;font-weight:800;color:var(--text-1);margin:0;">Gastos Diarios (Personales)</h3>';
+    h += '<span style="font-size:20px;">💳</span>';
+    h += '<h3 style="font-size:16px;font-weight:800;color:var(--text-1);margin:0;">Finanzas Personales (Ingresos & Gastos)</h3>';
     h += '</div>';
-    h += '<span style="font-size:12px;font-family:var(--mono);color:#f87171;font-weight:700;">Total: S/. ' + totalExpAll.toFixed(2) + '</span>';
+    h += '<span style="font-size:12px;font-family:var(--mono);color:' + (totalSaldoAll >= 0 ? '#4ade80' : '#f87171') + ';font-weight:700;">Saldo Total: S/. ' + totalSaldoAll.toFixed(2) + '</span>';
     h += '</div>';
 
-    // Formulario de Registro de Gasto
-    h += '<form id="gf-expense-form" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;">';
-    h += '<div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:8px;display:flex;align-items:center;gap:5px;"><span>➕</span> Registrar Nuevo Gasto</div>';
+    // Formulario de Registro Financiero
+    h += '<form id="gf-expense-form" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">';
+    h += '<div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:10px;display:flex;align-items:center;gap:6px;"><span>➕</span> Registrar Movimiento Financiero</div>';
     
+    // Tipo de Movimiento: Ingreso vs Gasto
+    h += '<div style="display:flex;gap:12px;margin-bottom:10px;background:var(--bg-surface);padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border);">';
+    h += '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;font-weight:700;color:#4ade80;">';
+    h += '<input type="radio" name="pfin-type" value="ingreso" id="pfin-type-ingreso"> 🟢 Ingreso (+) (Padres / Trabajos / Propinas)';
+    h += '</label>';
+    h += '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;font-weight:700;color:#f87171;">';
+    h += '<input type="radio" name="pfin-type" value="gasto" id="pfin-type-gasto" checked> 🔴 Gasto (-) (Comida / Pasajes / Otros)';
+    h += '</label>';
+    h += '</div>';
+
     h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
     h += '<div>';
     h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">FECHA</label>';
@@ -5339,7 +5473,7 @@
     h += '<select id="gexp-cat" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
     h += '<option value="Alimentación">🍔 Alimentación & Menú</option>';
     h += '<option value="Transporte">🚌 Transporte & Pasajes</option>';
-    h += '<option value="Universidad">📚 Universidad & Copias</option>';
+    h += '<option value="Universidad">📚 Universidad & Materiales</option>';
     h += '<option value="Antojos">☕ Antojos & Salidas</option>';
     h += '<option value="Salud / Rehab">💊 Salud & Gimnasio</option>';
     h += '<option value="Otros">📦 Otros Gastos</option>';
@@ -5350,7 +5484,7 @@
     h += '<div style="display:grid;grid-template-columns:1.8fr 1fr 1fr;gap:8px;margin-bottom:10px;">';
     h += '<div>';
     h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">CONCEPTO / DETALLE</label>';
-    h += '<input type="text" id="gexp-concept" placeholder="Ej: Menú universitario" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
+    h += '<input type="text" id="gexp-concept" placeholder="Ej: Menú universitario o Dinero de mis padres" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
     h += '</div>';
     h += '<div>';
     h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">MONTO (S/.)</label>';
@@ -5361,57 +5495,71 @@
     h += '<select id="gexp-method" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
     h += '<option value="Yape / Plin">💜 Yape / Plin</option>';
     h += '<option value="Efectivo">💵 Efectivo</option>';
-    h += '<option value="Tarjeta">💳 Tarjeta</option>';
+    h += '<option value="Transferencia / Tarjeta">💳 Transferencia / Tarjeta</option>';
     h += '</select>';
     h += '</div>';
     h += '</div>';
 
-    h += '<button type="submit" class="hs-btn primary sm" id="add-personal-expense-btn" style="width:100%;justify-content:center;padding:7px;font-size:12px;font-weight:700;">+ Registrar Gasto</button>';
+    h += '<button type="submit" class="hs-btn primary sm" id="add-personal-expense-btn" style="width:100%;justify-content:center;padding:8px;font-size:12px;font-weight:700;">+ Registrar Movimiento Financiero</button>';
     h += '</form>';
 
-    // Filtros de Gastos
-    const curExpFilter = view.expenseFilter || 'todos';
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
-    h += '<div style="font-size:11px;font-family:var(--mono);color:var(--text-3);text-transform:uppercase;">Historial de Gastos:</div>';
-    h += '<div style="display:flex;gap:4px;">';
-    h += '<button class="hs-btn sm ' + (curExpFilter === 'hoy' ? 'primary' : '') + '" data-exp-filter="hoy" style="padding:2px 8px;font-size:10.5px;">Hoy</button>';
-    h += '<button class="hs-btn sm ' + (curExpFilter === 'mes' ? 'primary' : '') + '" data-exp-filter="mes" style="padding:2px 8px;font-size:10.5px;">Este Mes</button>';
-    h += '<button class="hs-btn sm ' + (curExpFilter === 'todos' ? 'primary' : '') + '" data-exp-filter="todos" style="padding:2px 8px;font-size:10.5px;">Todos</button>';
-    h += '</div>';
-    h += '</div>';
-
-    // Lista de Gastos
-    let filteredExpenses = [...expenses].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    if (curExpFilter === 'hoy') {
-      filteredExpenses = filteredExpenses.filter(x => x.date === todayStr);
-    } else if (curExpFilter === 'mes') {
-      filteredExpenses = filteredExpenses.filter(x => (x.date || '').startsWith(curMonthStr));
+    // Gráfica de Finanzas Personales
+    if (finChartHtml) {
+      h += '<div style="margin-bottom:16px;">' + finChartHtml + '</div>';
     }
 
-    if (!filteredExpenses.length) {
-      h += '<div style="text-align:center;padding:26px 14px;color:var(--text-3);background:var(--bg-elevated);border-radius:var(--radius-sm);border:1px dashed var(--border);font-size:12px;">';
-      h += '<div>🍃 No hay gastos registrados con este filtro.</div>';
-      h += '<div style="font-size:11px;margin-top:4px;">Registra tus gastos arriba para llevar la cuenta exacta.</div>';
+    // Filtros de Finanzas
+    const curExpFilter = view.expenseFilter || 'todos';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
+    h += '<div style="font-size:11px;font-family:var(--mono);color:var(--text-3);text-transform:uppercase;">Historial de Movimientos:</div>';
+    h += '<div style="display:flex;gap:4px;">';
+    h += '<button class="hs-btn sm ' + (curExpFilter === 'todos' ? 'primary' : '') + '" data-exp-filter="todos" style="padding:2px 8px;font-size:10.5px;">Todos (' + finMovements.length + ')</button>';
+    h += '<button class="hs-btn sm ' + (curExpFilter === 'ingresos' ? 'primary' : '') + '" data-exp-filter="ingresos" style="padding:2px 8px;font-size:10.5px;color:#4ade80;">🟢 Ingresos</button>';
+    h += '<button class="hs-btn sm ' + (curExpFilter === 'gastos' ? 'primary' : '') + '" data-exp-filter="gastos" style="padding:2px 8px;font-size:10.5px;color:#f87171;">🔴 Gastos</button>';
+    h += '<button class="hs-btn sm ' + (curExpFilter === 'mes' ? 'primary' : '') + '" data-exp-filter="mes" style="padding:2px 8px;font-size:10.5px;">Este Mes</button>';
+    h += '</div>';
+    h += '</div>';
+
+    // Lista de Movimientos Financieros
+    let filteredFin = [...finMovements].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    if (curExpFilter === 'ingresos') {
+      filteredFin = filteredFin.filter(x => x.type === 'ingreso');
+    } else if (curExpFilter === 'gastos') {
+      filteredFin = filteredFin.filter(x => x.type === 'gasto');
+    } else if (curExpFilter === 'mes') {
+      filteredFin = filteredFin.filter(x => (x.date || '').startsWith(curMonthStr));
+    }
+
+    if (!filteredFin.length) {
+      h += '<div style="text-align:center;padding:24px 14px;color:var(--text-3);background:var(--bg-elevated);border-radius:var(--radius-sm);border:1px dashed var(--border);font-size:12px;">';
+      h += '<div>🍃 No hay movimientos registrados con este filtro.</div>';
       h += '</div>';
     } else {
-      h += '<div style="display:flex;flex-direction:column;gap:6px;max-height:480px;overflow-y:auto;padding-right:2px;">';
+      h += '<div style="display:flex;flex-direction:column;gap:6px;max-height:440px;overflow-y:auto;padding-right:2px;">';
       const catColors = {
+        'Apoyo Familiar / Padres': '#10b981',
+        'Sinergia / Trabajos 3D': '#8b5cf6',
+        'Propinas / Regalos': '#06b6d4',
         'Alimentación': '#f59e0b',
-        'Transporte': '#06b6d4',
-        'Universidad': '#8b5cf6',
+        'Transporte': '#0284c7',
+        'Universidad': '#a855f7',
         'Antojos': '#ec4899',
         'Salud / Rehab': '#10b981',
         'Otros': '#94a3b8'
       };
 
-      filteredExpenses.forEach(x => {
-        const cColor = catColors[x.category] || '#94a3b8';
-        h += '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;gap:8px;">';
+      filteredFin.forEach(x => {
+        const isIng = x.type === 'ingreso';
+        const cColor = catColors[x.category] || (isIng ? '#10b981' : '#94a3b8');
+        const sign = isIng ? '+S/. ' : '-S/. ';
+        const numColor = isIng ? '#4ade80' : '#f87171';
+
+        h += '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-elevated);border:1px solid ' + (isIng ? 'rgba(74,222,128,0.25)' : 'var(--border)') + ';border-radius:var(--radius-sm);padding:8px 10px;gap:8px;">';
         
         h += '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">';
-        h += '<div style="width:3px;height:28px;background:' + cColor + ';border-radius:2px;flex-shrink:0;"></div>';
+        h += '<div style="width:4px;height:30px;background:' + cColor + ';border-radius:2px;flex-shrink:0;"></div>';
         h += '<div style="min-width:0;">';
-        h += '<div style="font-size:12.5px;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(x.concept || 'Gasto') + '</div>';
+        h += '<div style="font-size:12.5px;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (isIng ? '🟢 ' : '') + esc(x.concept || 'Movimiento') + '</div>';
         h += '<div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--text-3);margin-top:2px;">';
         h += '<span style="font-family:var(--mono);">' + (x.date || '—') + '</span>';
         h += '<span style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:4px;color:' + cColor + ';">' + esc(x.category || 'Varios') + '</span>';
@@ -5421,8 +5569,8 @@
         h += '</div>';
 
         h += '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">';
-        h += '<span style="font-size:13.5px;font-weight:800;font-family:var(--mono);color:#f87171;">-S/. ' + (parseFloat(x.amount) || 0).toFixed(2) + '</span>';
-        h += '<button class="hs-btn sm" data-action="delete-personal-expense" data-id="' + x.id + '" style="padding:3px 6px;color:var(--text-3);background:transparent;border:none;" title="Eliminar gasto">🗑️</button>';
+        h += '<span style="font-size:13.5px;font-weight:800;font-family:var(--mono);color:' + numColor + ';">' + sign + x.amount.toFixed(2) + '</span>';
+        h += '<button class="hs-btn sm" data-action="delete-personal-expense" data-id="' + x.id + '" style="padding:3px 6px;color:var(--text-3);background:transparent;border:none;" title="Eliminar registro">🗑️</button>';
         h += '</div>';
 
         h += '</div>';
@@ -5430,34 +5578,35 @@
       h += '</div>';
     }
 
-    h += '</div>'; // Fin Columna 1 (Gastos)
+    h += '</div>'; // Fin Columna 1 (Finanzas)
 
     /* =======================================================
-       COLUMNA 2: APUESTAS DEPORTIVAS (GANADAS VS PERDIDAS)
+       COLUMNA 2: APUESTAS DEPORTIVAS (CAPITAL DIARIO BETANO)
        ======================================================= */
     h += '<div class="gf-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;">';
 
-    // Título
+    // Título de Sección
     h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;">';
     h += '<div style="display:flex;align-items:center;gap:8px;">';
     h += '<span style="font-size:20px;">⚽</span>';
-    h += '<h3 style="font-size:16px;font-weight:800;color:var(--text-1);margin:0;">Apuestas Deportivas (Ganadas vs Perdidas)</h3>';
+    h += '<h3 style="font-size:16px;font-weight:800;color:var(--text-1);margin:0;">Apuestas Deportivas (Capital Diario)</h3>';
     h += '</div>';
-    h += '<span style="font-size:12px;font-family:var(--mono);color:' + profitColor + ';font-weight:700;">Neto: ' + profitPrefix + profitVal + '</span>';
+    h += '<span style="font-size:12px;font-family:var(--mono);color:' + betProfitCol + ';font-weight:700;">Neto: ' + betProfitSign + Math.abs(totalProfitAll).toFixed(2) + '</span>';
     h += '</div>';
 
-    // Formulario de Registrar Apuesta
-    h += '<form id="gf-bet-form" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;">';
-    h += '<div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:8px;display:flex;align-items:center;gap:5px;"><span>🎯</span> Nueva Apuesta Deportiva</div>';
+    // Formulario de Registrar Capital del Día
+    h += '<form id="gf-bet-form" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">';
+    h += '<div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:10px;display:flex;align-items:center;gap:6px;"><span>🎯</span> Registrar Capital del Día (Inicio vs Fin)</div>';
 
     h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
     h += '<div>';
-    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">FECHA DEL EVENTO</label>';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">FECHA DEL DÍA</label>';
     h += '<input type="date" id="gbet-date" value="' + todayStr + '" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
     h += '</div>';
     h += '<div>';
     h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">CASA / PLATAFORMA</label>';
-    h += '<select id="gbet-platform" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
+    h += '<select id="gbet-platform" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);font-weight:700;box-sizing:border-box;">';
+    h += '<option value="Betano" selected>🔥 Betano (Principal)</option>';
     h += '<option value="Betsson">Betsson</option>';
     h += '<option value="Bet365">Bet365</option>';
     h += '<option value="Apuesta Total">Apuesta Total</option>';
@@ -5469,114 +5618,96 @@
     h += '</div>';
     h += '</div>';
 
-    h += '<div style="margin-bottom:8px;">';
-    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">PARTIDO / PRONÓSTICO / JUGADA</label>';
-    h += '<input type="text" id="gbet-match" placeholder="Ej: Real Madrid vs Chelsea — Ambos Anotan & +2.5 goles" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
-    h += '</div>';
-
-    h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
     h += '<div>';
-    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">APUESTA (S/.)</label>';
-    h += '<input type="number" id="gbet-amount" step="1.00" min="0" placeholder="20.00" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);font-weight:700;box-sizing:border-box;">';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">CAPITAL INICIAL (S/.)</label>';
+    h += '<input type="number" id="gbet-start" step="1.00" min="0" placeholder="Ej: 100.00" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);font-weight:700;box-sizing:border-box;">';
     h += '</div>';
     h += '<div>';
-    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">CUOTA (X.XX)</label>';
-    h += '<input type="number" id="gbet-quota" step="0.01" min="1.01" placeholder="1.95" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);font-weight:700;box-sizing:border-box;">';
-    h += '</div>';
-    h += '<div>';
-    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">ESTADO INICIAL</label>';
-    h += '<select id="gbet-status" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
-    h += '<option value="pendiente">⏳ Pendiente</option>';
-    h += '<option value="ganada">✅ Ganada</option>';
-    h += '<option value="perdida">❌ Perdida</option>';
-    h += '</select>';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">CAPITAL FINAL (S/.)</label>';
+    h += '<input type="number" id="gbet-end" step="1.00" min="0" placeholder="Ej: 145.00" style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);font-weight:700;box-sizing:border-box;">';
     h += '</div>';
     h += '</div>';
 
-    h += '<button type="submit" class="hs-btn primary sm" id="add-sports-bet-btn" style="width:100%;justify-content:center;padding:7px;font-size:12px;font-weight:700;">+ Registrar Apuesta Deportiva</button>';
+    h += '<div style="margin-bottom:10px;">';
+    h += '<label style="font-size:10.5px;color:var(--text-3);display:block;margin-bottom:3px;font-family:var(--mono);">JUGADAS / ESTRATEGIA / NOTAS DEL DÍA</label>';
+    h += '<input type="text" id="gbet-notes" placeholder="Ej: Champions League, Combinadas fútbol, etc." style="width:100%;padding:6px 8px;font-size:12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text-1);box-sizing:border-box;">';
+    h += '</div>';
+
+    // Previsualización dinámica del resultado del día
+    h += '<div id="gbet-preview-box" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-xs);padding:7px 12px;margin-bottom:12px;font-size:11.5px;font-family:var(--mono);display:flex;justify-content:space-between;align-items:center;">';
+    h += '<span style="color:var(--text-3);">Resultado del día:</span>';
+    h += '<strong id="gbet-preview-val" style="color:var(--text-2);">Ingresa capital inicial y final</strong>';
+    h += '</div>';
+
+    h += '<button type="submit" class="hs-btn primary sm" id="add-sports-bet-btn" style="width:100%;justify-content:center;padding:8px;font-size:12px;font-weight:700;">+ Registrar Sesión / Capital del Día</button>';
     h += '</form>';
+
+    // Gráfica de Apuestas Deportivas
+    if (betsChartHtml) {
+      h += '<div style="margin-bottom:16px;">' + betsChartHtml + '</div>';
+    }
 
     // Filtros de Apuestas
     const curBetFilter = view.betFilter || 'todas';
     h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">';
-    h += '<div style="font-size:11px;font-family:var(--mono);color:var(--text-3);text-transform:uppercase;">Historial de Jugadas:</div>';
+    h += '<div style="font-size:11px;font-family:var(--mono);color:var(--text-3);text-transform:uppercase;">Historial de Sesiones:</div>';
     h += '<div style="display:flex;gap:4px;">';
-    h += '<button class="hs-btn sm ' + (curBetFilter === 'todas' ? 'primary' : '') + '" data-bet-filter="todas" style="padding:2px 8px;font-size:10.5px;">Todas (' + bets.length + ')</button>';
-    h += '<button class="hs-btn sm ' + (curBetFilter === 'pendientes' ? 'primary' : '') + '" data-bet-filter="pendientes" style="padding:2px 8px;font-size:10.5px;">⏳ Pendientes (' + countPending + ')</button>';
-    h += '<button class="hs-btn sm ' + (curBetFilter === 'ganadas' ? 'primary' : '') + '" data-bet-filter="ganadas" style="padding:2px 8px;font-size:10.5px;color:#4ade80;">✅ Ganadas (' + countWon + ')</button>';
-    h += '<button class="hs-btn sm ' + (curBetFilter === 'perdidas' ? 'primary' : '') + '" data-bet-filter="perdidas" style="padding:2px 8px;font-size:10.5px;color:#f87171;">❌ Perdidas (' + countLost + ')</button>';
+    h += '<button class="hs-btn sm ' + (curBetFilter === 'todas' ? 'primary' : '') + '" data-bet-filter="todas" style="padding:2px 8px;font-size:10.5px;">Todos (' + bets.length + ')</button>';
+    h += '<button class="hs-btn sm ' + (curBetFilter === 'ganadas' ? 'primary' : '') + '" data-bet-filter="ganadas" style="padding:2px 8px;font-size:10.5px;color:#4ade80;">🟢 Ganados (' + daysWon + ')</button>';
+    h += '<button class="hs-btn sm ' + (curBetFilter === 'perdidas' ? 'primary' : '') + '" data-bet-filter="perdidas" style="padding:2px 8px;font-size:10.5px;color:#f87171;">🔴 Pérdidas (' + daysLost + ')</button>';
     h += '</div>';
     h += '</div>';
 
-    // Lista de Apuestas
+    // Lista de Sesiones de Apuestas
     let filteredBets = [...bets].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    if (curBetFilter === 'pendientes') {
-      filteredBets = filteredBets.filter(b => b.status === 'pendiente');
-    } else if (curBetFilter === 'ganadas') {
-      filteredBets = filteredBets.filter(b => b.status === 'ganada');
+    if (curBetFilter === 'ganadas') {
+      filteredBets = filteredBets.filter(b => b.profit > 0);
     } else if (curBetFilter === 'perdidas') {
-      filteredBets = filteredBets.filter(b => b.status === 'perdida');
+      filteredBets = filteredBets.filter(b => b.profit < 0);
     }
 
     if (!filteredBets.length) {
-      h += '<div style="text-align:center;padding:26px 14px;color:var(--text-3);background:var(--bg-elevated);border-radius:var(--radius-sm);border:1px dashed var(--border);font-size:12px;">';
-      h += '<div>🎯 No hay apuestas registradas en esta vista.</div>';
-      h += '<div style="font-size:11px;margin-top:4px;">Registra tus jugadas para llevar el balance exacto de lo ganado y perdido.</div>';
+      h += '<div style="text-align:center;padding:24px 14px;color:var(--text-3);background:var(--bg-elevated);border-radius:var(--radius-sm);border:1px dashed var(--border);font-size:12px;">';
+      h += '<div>🎯 No hay sesiones registradas con este filtro.</div>';
       h += '</div>';
     } else {
-      h += '<div style="display:flex;flex-direction:column;gap:8px;max-height:480px;overflow-y:auto;padding-right:2px;">';
+      h += '<div style="display:flex;flex-direction:column;gap:8px;max-height:440px;overflow-y:auto;padding-right:2px;">';
       
       filteredBets.forEach(b => {
-        const stake = parseFloat(b.betAmount) || 0;
-        const quota = parseFloat(b.quota) || 1.0;
-        const ret = stake * quota;
-        const profit = ret - stake;
-        const status = b.status || 'pendiente';
+        const isWin = b.profit > 0;
+        const isLoss = b.profit < 0;
+        const pCol = isWin ? '#4ade80' : (isLoss ? '#f87171' : 'var(--text-2)');
+        const pSign = b.profit >= 0 ? '+S/. ' : '-S/. ';
+        const pct = b.startBankroll > 0 ? ((b.profit / b.startBankroll) * 100).toFixed(1) : '0.0';
+        const pctSign = b.profit >= 0 ? '+' : '';
+        const isBetano = (b.platform || '').toLowerCase().includes('betano');
 
-        let statusBorder = 'var(--border)';
-        let profitBadge = '';
-        if (status === 'ganada') {
-          statusBorder = 'rgba(74,222,128,0.4)';
-          profitBadge = '<span style="color:#4ade80;font-weight:800;font-size:12px;">+S/. ' + profit.toFixed(2) + ' Ganancia</span>';
-        } else if (status === 'perdida') {
-          statusBorder = 'rgba(248,113,113,0.4)';
-          profitBadge = '<span style="color:#f87171;font-weight:800;font-size:12px;">-S/. ' + stake.toFixed(2) + ' Pérdida</span>';
-        } else {
-          statusBorder = 'rgba(56,189,248,0.3)';
-          profitBadge = '<span style="color:#38bdf8;font-weight:700;font-size:11.5px;">Potencial: S/. ' + ret.toFixed(2) + '</span>';
-        }
-
-        h += '<div style="background:var(--bg-elevated);border:1px solid ' + statusBorder + ';border-radius:var(--radius-sm);padding:10px 12px;">';
+        h += '<div style="background:var(--bg-elevated);border:1px solid ' + (isWin ? 'rgba(74,222,128,0.3)' : (isLoss ? 'rgba(248,113,113,0.3)' : 'var(--border)')) + ';border-radius:var(--radius-sm);padding:10px 12px;">';
         
-        // Fila 1: Fecha, Plataforma y Borrar
-        h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
+        // Fila 1: Fecha y Plataforma
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
         h += '<div style="display:flex;align-items:center;gap:6px;">';
-        h += '<span style="font-family:var(--mono);font-size:10.5px;color:var(--text-3);">' + (b.date || '—') + '</span>';
-        h += '<span style="background:rgba(218,175,55,0.18);color:#F4D068;border:1px solid rgba(218,175,55,0.3);padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;">' + esc(b.platform || 'Casa') + '</span>';
+        h += '<span style="font-family:var(--mono);font-size:11px;color:var(--text-3);">' + (b.date || '—') + '</span>';
+        if (isBetano) {
+          h += '<span style="background:rgba(255,87,34,0.18);color:#ff7043;border:1px solid rgba(255,87,34,0.35);padding:1px 7px;border-radius:4px;font-size:10.5px;font-weight:700;">🔥 Betano</span>';
+        } else {
+          h += '<span style="background:rgba(218,175,55,0.18);color:#F4D068;border:1px solid rgba(218,175,55,0.3);padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;">' + esc(b.platform || 'Casa') + '</span>';
+        }
         h += '</div>';
-        h += '<button class="hs-btn sm" data-action="delete-sports-bet" data-id="' + b.id + '" style="padding:2px 5px;color:var(--text-3);background:transparent;border:none;" title="Eliminar apuesta">🗑️</button>';
-        h += '</div>';
-
-        // Fila 2: Partido / Pronóstico
-        h += '<div style="font-size:13px;font-weight:700;color:var(--text-1);margin-bottom:6px;">' + esc(b.match || 'Apuesta') + '</div>';
-
-        // Fila 3: Detalle Económico
-        h += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-surface);padding:6px 10px;border-radius:var(--radius-xs);margin-bottom:8px;font-size:11.5px;font-family:var(--mono);">';
-        h += '<div>Apostado: <strong>S/. ' + stake.toFixed(2) + '</strong> | Cuota: <strong style="color:var(--accent);">' + quota.toFixed(2) + '</strong></div>';
-        h += '<div>' + profitBadge + '</div>';
+        h += '<button class="hs-btn sm" data-action="delete-sports-bet" data-id="' + b.id + '" style="padding:2px 5px;color:var(--text-3);background:transparent;border:none;" title="Eliminar registro">🗑️</button>';
         h += '</div>';
 
-        // Fila 4: Botones interactivos de cambio de resultado con 1 click
-        h += '<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">';
-        h += '<span style="font-size:10.5px;color:var(--text-3);font-family:var(--mono);margin-right:2px;">Resultado:</span>';
-        
-        h += '<button class="hs-btn sm" data-action="set-bet-status" data-id="' + b.id + '" data-status="ganada" style="padding:3px 9px;font-size:11px;font-weight:700;' + (status === 'ganada' ? 'background:rgba(74,222,128,0.25);border:1px solid #4ade80;color:#4ade80;' : 'background:var(--bg-input);border:1px solid var(--border);color:var(--text-2);') + '">✅ Ganada</button>';
-        
-        h += '<button class="hs-btn sm" data-action="set-bet-status" data-id="' + b.id + '" data-status="perdida" style="padding:3px 9px;font-size:11px;font-weight:700;' + (status === 'perdida' ? 'background:rgba(248,113,113,0.25);border:1px solid #f87171;color:#f87171;' : 'background:var(--bg-input);border:1px solid var(--border);color:var(--text-2);') + '">❌ Perdida</button>';
-        
-        h += '<button class="hs-btn sm" data-action="set-bet-status" data-id="' + b.id + '" data-status="pendiente" style="padding:3px 9px;font-size:11px;font-weight:700;' + (status === 'pendiente' ? 'background:rgba(56,189,248,0.25);border:1px solid #38bdf8;color:#38bdf8;' : 'background:var(--bg-input);border:1px solid var(--border);color:var(--text-2);') + '">⏳ Pendiente</button>';
-        
+        // Fila 2: Capital Inicial vs Capital Final y Resultado
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-surface);padding:7px 10px;border-radius:var(--radius-xs);margin-bottom:6px;font-size:12px;font-family:var(--mono);">';
+        h += '<div>Inicio: <strong>S/. ' + b.startBankroll.toFixed(2) + '</strong> ➔ Fin: <strong style="color:#DAAF37;">S/. ' + b.endBankroll.toFixed(2) + '</strong></div>';
+        h += '<div style="font-weight:800;color:' + pCol + ';">' + pSign + Math.abs(b.profit).toFixed(2) + ' <span style="font-size:10.5px;">(' + pctSign + pct + '%)</span></div>';
         h += '</div>';
+
+        // Fila 3: Notas / Jugadas
+        if (b.notes) {
+          h += '<div style="font-size:11.5px;color:var(--text-2);">' + esc(b.notes) + '</div>';
+        }
 
         h += '</div>';
       });
@@ -5590,6 +5721,53 @@
 
     h += '</div>'; // Fin Container
     return h;
+  }
+
+  function updatePersonalFinanceFormType(type) {
+    const catSel = document.getElementById('gexp-cat');
+    const conceptInp = document.getElementById('gexp-concept');
+    if (!catSel) return;
+    if (type === 'ingreso') {
+      catSel.innerHTML = '<option value="Apoyo Familiar / Padres">👨‍👩‍👧 Apoyo Familiar / Padres</option>' +
+        '<option value="Sinergia / Trabajos 3D">💻 Sinergia / Trabajos 3D</option>' +
+        '<option value="Propinas / Regalos">🎁 Propinas / Regalos</option>' +
+        '<option value="Otros">✨ Otros Ingresos</option>';
+      if (conceptInp) conceptInp.placeholder = 'Ej: Dinero que me dieron mis padres, anticipo cliente...';
+    } else {
+      catSel.innerHTML = '<option value="Alimentación">🍔 Alimentación & Menú</option>' +
+        '<option value="Transporte">🚌 Transporte & Pasajes</option>' +
+        '<option value="Universidad">📚 Universidad & Materiales</option>' +
+        '<option value="Antojos">☕ Antojos & Salidas</option>' +
+        '<option value="Salud / Rehab">💊 Salud & Gimnasio</option>' +
+        '<option value="Otros">📦 Otros Gastos</option>';
+      if (conceptInp) conceptInp.placeholder = 'Ej: Menú universitario, pasajes, compras...';
+    }
+  }
+
+  function updateBetPreview() {
+    const startInp = document.getElementById('gbet-start');
+    const endInp = document.getElementById('gbet-end');
+    const previewVal = document.getElementById('gbet-preview-val');
+    if (!previewVal || !startInp || !endInp) return;
+    const s = parseFloat(startInp.value);
+    const e = parseFloat(endInp.value);
+    if (isNaN(s) || isNaN(e)) {
+      previewVal.style.color = 'var(--text-2)';
+      previewVal.textContent = 'Ingresa capital inicial y final';
+      return;
+    }
+    const profit = Math.round((e - s) * 100) / 100;
+    const pct = s > 0 ? ((profit / s) * 100).toFixed(1) : '0.0';
+    if (profit > 0) {
+      previewVal.style.color = '#4ade80';
+      previewVal.textContent = '🟢 Ganancia: +S/. ' + profit.toFixed(2) + ' (+' + pct + '%)';
+    } else if (profit < 0) {
+      previewVal.style.color = '#f87171';
+      previewVal.textContent = '🔴 Pérdida: -S/. ' + Math.abs(profit).toFixed(2) + ' (' + pct + '%)';
+    } else {
+      previewVal.style.color = 'var(--text-1)';
+      previewVal.textContent = '⚪ Tablas / Sin cambio: S/. 0.00 (0.0%)';
+    }
   }
 
   /* ================================================================
@@ -8754,13 +8932,22 @@
       render(); return;
     }
 
-    // Add personal expense (Geanly)
+    // Switch between Ingreso / Gasto categories on radio click
+    if (e.target && e.target.name === 'pfin-type') {
+      updatePersonalFinanceFormType(e.target.value);
+    }
+
+    // Add personal movement (Ingreso o Gasto - Geanly)
     if (e.target.id === 'add-personal-expense-btn' || e.target.closest('#add-personal-expense-btn')) {
       e.preventDefault();
       const mem = getActiveMember();
       if (!mem || mem.id !== 'geanly') return;
       if (!mem.personalExpenses) mem.personalExpenses = [];
       
+      const typeRadio = document.querySelector('input[name="pfin-type"]:checked');
+      const pfinType = typeRadio ? typeRadio.value : 'gasto';
+      const isIngreso = pfinType === 'ingreso';
+
       const dateInp = document.getElementById('gexp-date');
       const catInp = document.getElementById('gexp-cat');
       const conceptInp = document.getElementById('gexp-concept');
@@ -8771,33 +8958,35 @@
       const concept = (conceptInp ? conceptInp.value : '').trim();
 
       if (!amount || amount <= 0) {
-        showToast('Ingresa un monto válido para el gasto', 'warn');
+        showToast('Ingresa un monto válido mayor a 0', 'warn');
         if (amountInp) amountInp.focus();
         return;
       }
       if (!concept) {
-        showToast('Ingresa el concepto del gasto (ej: Menú, Pasajes)', 'warn');
+        showToast(isIngreso ? 'Ingresa el concepto del ingreso (ej: Apoyo de mis padres, Render 3D)' : 'Ingresa el concepto del gasto (ej: Menú, Pasajes)', 'warn');
         if (conceptInp) conceptInp.focus();
         return;
       }
 
-      const newExp = {
+      const defaultCat = isIngreso ? 'Apoyo Familiar / Padres' : 'Alimentación';
+      const newMovement = {
         id: 'exp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        type: pfinType,
         date: dateInp ? dateInp.value : getTodayDateStr(),
-        category: catInp ? catInp.value : 'Alimentación',
+        category: catInp ? catInp.value : defaultCat,
         concept: concept,
         amount: amount,
         method: methodInp ? methodInp.value : 'Yape / Plin'
       };
 
-      mem.personalExpenses.push(newExp);
+      mem.personalExpenses.push(newMovement);
       saveState();
       render();
-      showToast('✓ Gasto de S/. ' + amount.toFixed(2) + ' registrado');
+      showToast(isIngreso ? '✓ Ingreso de S/. ' + amount.toFixed(2) + ' registrado' : '✓ Gasto de S/. ' + amount.toFixed(2) + ' registrado');
       return;
     }
 
-    // Delete personal expense (Geanly)
+    // Delete personal movement (Geanly)
     const delExpBtn = e.target.closest('[data-action="delete-personal-expense"]');
     if (delExpBtn) {
       const mem = getActiveMember();
@@ -8806,12 +8995,12 @@
         mem.personalExpenses = mem.personalExpenses.filter(x => x.id !== id);
         saveState();
         render();
-        showToast('Gasto eliminado');
+        showToast('Movimiento financiero eliminado');
       }
       return;
     }
 
-    // Add sports bet (Geanly)
+    // Add sports bet daily session (Betano / Capital Diario - Geanly)
     if (e.target.id === 'add-sports-bet-btn' || e.target.closest('#add-sports-bet-btn')) {
       e.preventDefault();
       const mem = getActiveMember();
@@ -8820,64 +9009,45 @@
 
       const dateInp = document.getElementById('gbet-date');
       const platInp = document.getElementById('gbet-platform');
-      const matchInp = document.getElementById('gbet-match');
-      const amountInp = document.getElementById('gbet-amount');
-      const quotaInp = document.getElementById('gbet-quota');
-      const statusInp = document.getElementById('gbet-status');
+      const startInp = document.getElementById('gbet-start');
+      const endInp = document.getElementById('gbet-end');
+      const notesInp = document.getElementById('gbet-notes');
 
-      const match = (matchInp ? matchInp.value : '').trim();
-      const amount = parseFloat(amountInp ? amountInp.value : 0);
-      const quota = parseFloat(quotaInp ? quotaInp.value : 1.0);
+      const startBankroll = parseFloat(startInp ? startInp.value : NaN);
+      const endBankroll = parseFloat(endInp ? endInp.value : NaN);
+      const notes = (notesInp ? notesInp.value : '').trim();
+      const platform = platInp ? platInp.value : 'Betano';
 
-      if (!match) {
-        showToast('Ingresa el partido o jugada de la apuesta', 'warn');
-        if (matchInp) matchInp.focus();
+      if (isNaN(startBankroll) || startBankroll < 0) {
+        showToast('Ingresa el Capital Inicial del día (ej: 100.00)', 'warn');
+        if (startInp) startInp.focus();
         return;
       }
-      if (!amount || amount <= 0) {
-        showToast('Ingresa el monto apostado en Soles', 'warn');
-        if (amountInp) amountInp.focus();
-        return;
-      }
-      if (!quota || quota <= 1.0) {
-        showToast('Ingresa una cuota válida (ej: 1.85)', 'warn');
-        if (quotaInp) quotaInp.focus();
+      if (isNaN(endBankroll) || endBankroll < 0) {
+        showToast('Ingresa el Capital Final del día (ej: 145.00)', 'warn');
+        if (endInp) endInp.focus();
         return;
       }
 
-      const newBet = {
+      const profit = Math.round((endBankroll - startBankroll) * 100) / 100;
+      const pct = startBankroll > 0 ? ((profit / startBankroll) * 100).toFixed(1) : '0.0';
+      const pctSign = profit >= 0 ? '+' : '';
+
+      const newSession = {
         id: 'bet_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
         date: dateInp ? dateInp.value : getTodayDateStr(),
-        platform: platInp ? platInp.value : 'Betsson',
-        match: match,
-        betAmount: amount,
-        quota: quota,
-        status: statusInp ? statusInp.value : 'pendiente'
+        platform: platform,
+        startBankroll: startBankroll,
+        endBankroll: endBankroll,
+        profit: profit,
+        notes: notes || ('Sesión en ' + platform)
       };
 
-      mem.sportsBets.push(newBet);
+      mem.sportsBets.push(newSession);
       saveState();
       render();
-      showToast('✓ Apuesta de S/. ' + amount.toFixed(2) + ' registrada');
-      return;
-    }
-
-    // Set bet status (Ganada, Perdida, Pendiente)
-    const setStatusBtn = e.target.closest('[data-action="set-bet-status"]');
-    if (setStatusBtn) {
-      const mem = getActiveMember();
-      if (mem && mem.id === 'geanly' && mem.sportsBets) {
-        const id = setStatusBtn.dataset.id;
-        const newStatus = setStatusBtn.dataset.status;
-        const bet = mem.sportsBets.find(b => b.id === id);
-        if (bet) {
-          bet.status = newStatus;
-          saveState();
-          render();
-          const label = newStatus === 'ganada' ? '¡Apuesta Marcada como Ganada! 🏆' : (newStatus === 'perdida' ? 'Apuesta marcada como Perdida' : 'Apuesta marcada como Pendiente ⏳');
-          showToast(label);
-        }
-      }
+      const pSign = profit >= 0 ? '+S/. ' : '-S/. ';
+      showToast('✓ Sesión en ' + platform + ': ' + pSign + Math.abs(profit).toFixed(2) + ' (' + pctSign + pct + '%)');
       return;
     }
 
@@ -8890,7 +9060,7 @@
         mem.sportsBets = mem.sportsBets.filter(b => b.id !== id);
         saveState();
         render();
-        showToast('Apuesta eliminada');
+        showToast('Sesión de apuestas eliminada');
       }
       return;
     }
@@ -11586,6 +11756,10 @@
   }
 
     function handleChange(e) {
+    if (e.target && e.target.name === 'pfin-type') {
+      updatePersonalFinanceFormType(e.target.value);
+      return;
+    }
     const mem = getActiveMember();
     if (e.target.matches('.exam-toggle-done') && mem) {
       const ex = (mem.exams || []).find(x => x.id === e.target.dataset.id);
@@ -11911,8 +12085,11 @@
     let typingIdleTimer = null;
     document.addEventListener('input', function(e) {
       try {
+        if (e.target.id === 'gbet-start' || e.target.id === 'gbet-end') {
+          updateBetPreview();
+        }
         // En inputs de texto no ejecutar handleChange destructivo que llame render() en cada pulsación
-        if (!e.target.matches('input[type="text"], textarea, input[type="search"], .cat-name-input, #gexp-concept, #gbet-match')) {
+        if (!e.target.matches('input[type="text"], textarea, input[type="search"], .cat-name-input, #gexp-concept, #gbet-notes, #gbet-start, #gbet-end, #gexp-amount')) {
           handleChange(e);
         } else {
           // Sincronizar filtros de búsqueda en memoria sin destruir el elemento
