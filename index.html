@@ -2989,8 +2989,12 @@
         if (!mem.habits || !mem.habits.length) {
           mem.habits = getDefaultMemberHabits(m.id);
         }
-        if (!mem.exams || !mem.exams.length) {
+        if (mem.exams === undefined || mem.exams === null) {
           mem.exams = getDefaultMemberExams(m.id);
+        } else if (Array.isArray(mem.exams)) {
+          mem.exams.forEach(x => {
+            if (!x.id || x.id === 'undefined') x.id = genId();
+          });
         }
         if (!mem.categories) {
           mem.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES[m.id] || DEFAULT_CATEGORIES.geanly));
@@ -4022,6 +4026,9 @@
     function renderMemberCalendar(mem) {
     if (!mem.calendarNotes) mem.calendarNotes = {};
     if (!mem.exams) mem.exams = getDefaultMemberExams(mem.id);
+    (mem.exams || []).forEach(x => {
+      if (!x.id || x.id === 'undefined') x.id = genId();
+    });
     const exams = mem.exams || [];
 
     const d = new Date();
@@ -5118,7 +5125,7 @@
         }
 
         const savedItem = {
-          id: initialData ? initialData.id : genId(),
+          id: (initialData && initialData.id && initialData.id !== 'undefined') ? initialData.id : genId(),
           categoryType: currentScope,
           course: tInp.value.trim(),
           type: (tyInp?.value || 'Compromiso').trim(),
@@ -5166,6 +5173,10 @@
   }
 
   function renderMemberExams(mem) {
+    if (!mem.exams) mem.exams = [];
+    mem.exams.forEach(x => {
+      if (!x.id || x.id === 'undefined') x.id = genId();
+    });
     const exams = mem.exams || [];
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -10102,9 +10113,43 @@
 
     const examDelBtn = e.target.closest('.exam-del-btn');
     if (examDelBtn && mem) {
-      
-      mem.exams = (mem.exams || []).filter(x => x.id !== examDelBtn.dataset.id);
-      saveState(); render(); showToast('Evaluación eliminada', 'warn');
+      const delId = examDelBtn.dataset.id;
+      if (delId && delId !== 'undefined') {
+        mem.exams = (mem.exams || []).filter(x => x.id !== delId);
+      } else {
+        const card = examDelBtn.closest('.calendar-exam-item') || examDelBtn.closest('[data-exam-id]');
+        const cardId = card ? card.dataset.examId : null;
+        if (cardId && cardId !== 'undefined') {
+          mem.exams = (mem.exams || []).filter(x => x.id !== cardId);
+        } else {
+          // Si el ID era undefined, remover cualquier actividad sin ID válido
+          mem.exams = (mem.exams || []).filter(x => x.id && x.id !== 'undefined');
+        }
+      }
+      saveState();
+      render();
+      showToast('✓ Actividad eliminada', 'warn');
+
+      // Si se eliminó desde adentro del modal inspector de día, retirar la tarjeta con animación o cerrar el modal
+      const modalContainer = document.getElementById('sinergia-modal-container');
+      const modalBackdrop = document.getElementById('smodal-backdrop');
+      if (modalBackdrop && modalContainer && modalContainer.contains(examDelBtn)) {
+        const card = examDelBtn.closest('.calendar-exam-item') || examDelBtn.closest('[style*="border-left"]');
+        if (card) {
+          card.style.transition = 'all 0.2s ease';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            card.remove();
+            const remaining = modalContainer.querySelectorAll('.exam-del-btn, .mem-cal-note-del-btn');
+            if (!remaining || remaining.length === 0) {
+              hideSinergiaModal();
+            }
+          }, 200);
+        } else {
+          hideSinergiaModal();
+        }
+      }
       return;
     }
 
@@ -10697,6 +10742,9 @@
         const dateKey = memCalCell.dataset.date;
         if (!mem.calendarNotes) mem.calendarNotes = {};
         if (!mem.exams) mem.exams = [];
+        mem.exams.forEach(x => {
+          if (!x.id || x.id === 'undefined') x.id = genId();
+        });
         
         const dayExams = mem.exams.filter(x => x.date === dateKey);
         const dayNotes = mem.calendarNotes[dateKey] || [];
@@ -10723,7 +10771,7 @@
             else if (cat === 'personal') { catBadge = '🏠 Hogar / Personal'; catColor = '#10b981'; icon = '🏠'; }
 
             dayHtml += `
-              <div style="background:var(--bg-elevated);border:1px solid var(--border);border-left:4px solid ${ex.done ? '#10b981' : catColor};border-radius:var(--radius-sm);padding:10px 12px;display:flex;flex-direction:column;gap:6px;">
+              <div class="calendar-exam-item" data-exam-id="${ex.id}" style="background:var(--bg-elevated);border:1px solid var(--border);border-left:4px solid ${ex.done ? '#10b981' : catColor};border-radius:var(--radius-sm);padding:10px 12px;display:flex;flex-direction:column;gap:6px;">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
                   <div>
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
@@ -11767,6 +11815,17 @@
         ex.done = e.target.checked;
         saveState();
         render();
+        const card = e.target.closest('.calendar-exam-item') || e.target.closest('[style*="border-left"]');
+        if (card) {
+          card.style.borderLeftColor = ex.done ? '#10b981' : '';
+          const strg = card.querySelector('strong');
+          if (strg) {
+            strg.style.textDecoration = ex.done ? 'line-through' : 'none';
+            strg.style.color = ex.done ? 'var(--text-3)' : 'var(--text-1)';
+          }
+          const lbl = e.target.nextElementSibling;
+          if (lbl) lbl.textContent = ex.done ? '✓ Completado' : 'Marcar como completado';
+        }
         showToast(ex.done ? '✓ ¡Actividad completada!' : 'Actividad marcada como pendiente');
       }
       return;
